@@ -354,3 +354,28 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 html[data-browser-safari] .u-image-wrapper.is-brand-stone-bg-image.is-refraction {
   display: none;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Chrome 108+ overflow on img/video/canvas — uciszenie warningu
+   "Specifying 'overflow: visible' on img, video and canvas tags…"
+
+   Browser default to `overflow: clip` na tych elementach, ale któraś
+   klasa w Webflow Designer / Lumos auto-generated CSS / `all: inherit`
+   patternie ustawia `overflow: visible`, co powoduje warning w Issues
+   panel + ryzyko że obraz rysuje się poza bounds (zwłaszcza z
+   `border-radius: 50%` + `object-fit: cover`).
+
+   `!important` jest tu konieczne — bez tego klasy z Webflow Style
+   Managera wygrywają specificity (`.some-class { overflow: visible }`
+   bije `img { overflow: clip }`).
+
+   Caveat: jeśli kiedyś będziemy potrzebowali ŚWIADOMIE pozwolić
+   img/video/canvas wystawać poza bbox (np. dekoracyjne obrazki
+   nakładające się na sąsiad), trzeba użyć selektora o wyższej
+   specificity z `overflow: visible !important` — np. dedykowanej
+   klasy `.allow-overflow`.
+   Doc: https://github.com/WICG/view-transitions/blob/main/debugging_overflow_on_images.md
+────────────────────────────────────────────────────────────────── */
+img, video, canvas {
+  overflow: clip !important;
+}
