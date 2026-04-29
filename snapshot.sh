@@ -30,6 +30,7 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 cp "$FILE" "$BACKUP_DIR/$TIMESTAMP.bak"
 
 # Zostaw tylko 3 najnowsze (sortowanie po nazwie = chronologiczne dzięki timestamp format).
-ls -1 "$BACKUP_DIR" | sort | head -n -3 | while read OLD; do
+# Cross-platform (macOS BSD head nie obsługuje `head -n -3`, więc używamy reverse-sort + tail).
+ls -1 "$BACKUP_DIR" | sort -r | tail -n +4 | while read OLD; do
   rm "$BACKUP_DIR/$OLD"
 done
