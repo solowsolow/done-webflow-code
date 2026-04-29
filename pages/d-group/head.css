@@ -1,0 +1,59 @@
+/* Number Odometer */
+[data-odometer-element] {
+  display: inline-flex;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-odometer-part="mask"],
+[data-odometer-part="static"] {
+  display: inline-block;
+  overflow: clip;
+  padding: 0.05em;
+  margin: -0.05em;
+}
+
+[data-odometer-part="roller"] {
+  display: block;
+  white-space: pre;
+  text-align: center;
+  will-change: transform;
+}
+
+[data-odometer-part="static"] {
+  display: inline-block;
+}
+
+/* Basic Modal */
+/* Zamknięcie — baza */
+[data-modal-name] {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  pointer-events: none;
+  /* "ostre wyjście" */
+  transition:
+    opacity 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19),
+    transform 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+[data-modal-group-status] {
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+/* Otwarcie — "miękkie wejście" */
+[data-modal-name][data-modal-status="active"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+}
+[data-modal-group-status="active"] {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  visibility: visible;
+}

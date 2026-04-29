@@ -1,0 +1,81 @@
+/* OSMO Horizontal Scrolling Sections Auto Overflow */
+.wf-design-mode [data-horizontal-scroll-wrap] {
+  overflow: auto;
+}
+
+/* OSMO Directional List Hover */
+[data-directional-hover-tile] {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(-100%);
+  will-change: transform;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Brand Stone — backdrop blur z SVG asset mask (sekcja .section_brand-stones)
+   Combo .is-blur na .u-image-wrapper.is-brand-stone-bg-image dziedziczy
+   bbox + position (absolute, inset 0, height 200dvh, z-index 10) i dodaje
+   backdrop-filter + mask-image z external SVG (Webflow Assets).
+   mask-size: cover skaluje SVG do bbox; viewBox SVG (2800×2624) zachowuje
+   aspect ratio przez preserveAspectRatio (default xMidYMid meet w SVG).
+   fill-rule="evenodd" w SVG path obsługuje wewnętrzną dziurę kształtu.
+   Wcześniejsza iteracja (inline <mask> z fragment URL + objectBoundingBox
+   units) miała architectural limit — fragment URL nie obsługuje mask-size.
+
+   Final stack (z heading 4d-rule/brand-stones na 5, refraction 8):
+     5: heading + stacking cards
+     8: .is-refraction (refraction layer, widzi heading + page bg)
+     9: .is-blur (blur layer, widzi heading + page bg + refraction)
+    10: bg-image (Designer, na wierzchu)
+   Czyste rozdzielenie warstw — żadna nie zniekształca innej ani bg-image.
+────────────────────────────────────────────────────────────────── */
+.u-image-wrapper.is-brand-stone-bg-image.is-blur {
+  z-index: 9;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  mask-image: url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69ec58922a391b8a37d7e708_brand-stone-blur-mask.svg');
+  -webkit-mask-image: url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69ec58922a391b8a37d7e708_brand-stone-blur-mask.svg');
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-position: center;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  pointer-events: none;
+}
+.section_4d-rule > section,
+.section_brand-stones > section,
+.section_brand-stones > .brand-stones_stacking-cards-collection {
+  z-index: 5;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Brand Stone — extra layer refraction (liquid glass pattern)
+   Combo .is-refraction na .u-image-wrapper.is-brand-stone-bg-image
+   dziedziczy bbox + mask shape od bazowej combo, dodaje
+   backdrop-filter: url(#brand-stone-refraction) — SVG filter z
+   <feDisplacementMap scale="50"> daje solidne załamanie krawędzi
+   kształtu (radial gradient w 4 ćwiartkach: środek krystaliczny,
+   brzegi displaced). Filter zdefiniowany w HTML Embed widget w sekcji.
+
+   z-index 8 = POD .is-blur (9) i POD bg-image (10) — refraction
+   zniekształca TYLKO to co pod nim (heading 5 + page bg), NIE blur,
+   NIE bg-image. Czyste rozdzielenie warstw — refraction działa jako
+   "soczewka" na underlying content, niezależnie od blur effect.
+
+   Wzór z `liquid-glass-D-WEBFLOW.md` (T.Rick), parametry tuned solidne.
+   UWAGA: backdrop-filter: url() działa Chromium + Safari 17.4+, NIE FF.
+────────────────────────────────────────────────────────────────── */
+.u-image-wrapper.is-brand-stone-bg-image.is-refraction {
+  z-index: 8;
+  backdrop-filter: url(#brand-stone-refraction);
+  -webkit-backdrop-filter: url(#brand-stone-refraction);
+  mask-image: url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69ec58922a391b8a37d7e708_brand-stone-blur-mask.svg');
+  -webkit-mask-image: url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69ec58922a391b8a37d7e708_brand-stone-blur-mask.svg');
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-position: center;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  pointer-events: none;
+}

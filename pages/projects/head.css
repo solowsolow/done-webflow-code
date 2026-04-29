@@ -1,0 +1,117 @@
+/* OSMO Layout Grid Flip */
+[data-layout-status='large'] {
+  --columns: 1;
+  --column-gap: var(--site--gutter);
+}
+
+[data-layout-status='small'] {
+  --columns: 3;
+  --column-gap: var(--site--gutter);
+}
+
+/* Flip { absolute: true } pozycjonuje items względem najbliższego pozycjonowanego
+   ancestor — collection musi być relative, inaczej items skaczą do body podczas
+   animacji przejścia między layoutami. */
+[data-layout-grid-collection] {
+  position: relative;
+}
+
+/* Wyłącz CSS transition na transform podczas Flip animacji.
+   CSS transition w `.filter-list__item[data-filter-status='active']` (`transform 0.6s`)
+   przechwytuje każdą zmianę inline transform — Flip ustawia inversion transform
+   wielokrotnie w ciągu cyklu, każda jest animowana CSS-em z 0 (= top-left collection)
+   → items 2+ wizualnie skaczą do lewego górnego rogu przed właściwą animacją Flip.
+   Pierwszy item przypadkiem zostaje na top-left bo to jego prawdziwa pozycja w obu
+   layoutach. Disable transition transform na czas flip, opacity zostaje. */
+[data-layout-group][data-transitioning='true'] [data-layout-grid-item] {
+  transition: none !important;
+}
+
+[data-layout-grid-item] {
+  width: calc((100% - (var(--columns) - 1) * var(--column-gap)) / var(--columns));
+}
+
+[data-layout-grid-item-title] {
+  transition: all 0.8s cubic-bezier(0.65, 0, 0.1, 1);
+}
+
+/* Change card layout while we're in grid mode */
+[data-layout-status='large'] [data-layout-grid-item] .layout-grid__card-sub {
+  transition-delay: 0.6s;
+}
+
+/* Change card layout while we're in list mode */
+[data-layout-status='small'] [data-layout-grid-item] .layout-grid__card-title {
+  font-size: 1em;
+}
+
+[data-layout-status='small'] [data-layout-grid-item] .layout-grid__card-sub {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Define layout sizes per breakpoint */
+@media screen and (max-width: 767px) {
+  [data-layout-status='large'] {
+    --columns: 1;
+    --column-gap: 0em;
+  }
+
+  [data-layout-status='small'] {
+    --columns: 2;
+    --column-gap: 1em;
+  }
+}
+
+/* OSMO Basic Filter Setup (Multi Match) */
+/* Filter Button */
+.filter-btn {
+  transition:
+    color 0.6s cubic-bezier(0.625, 0.05, 0, 1),
+    background-color 0.6s cubic-bezier(0.625, 0.05, 0, 1);
+}
+
+.filter-btn[data-filter-status='active'] {
+  background-color: #131313;
+  color: #efeeec;
+}
+
+/* Filter List Item — pełne CSS dla idle. */
+.filter-list__item[data-filter-status='active'] {
+  transition:
+    opacity 0.6s,
+    transform 0.6s;
+  transform: scale(1) rotate(0.001deg);
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+}
+
+.filter-list__item[data-filter-status='transition-out'] {
+  transition:
+    opacity 0.45s,
+    transform 0.45s;
+  transform: scale(0.9) rotate(0.001deg);
+  opacity: 0;
+  visibility: visible;
+}
+
+/* Not-active items — hidden zarówno w idle jak i podczas flip (BEZ scope :not())
+   żeby filtrowane items nie "wyskakiwały" widocznie podczas flip toggle layout. */
+.filter-list__item[data-filter-status='not-active'] {
+  transform: scale(0.9) rotate(0.001deg);
+  opacity: 0;
+  visibility: hidden;
+  position: absolute;
+}
+
+/* Podczas flip: wyłącz transition + transform CSS na ACTIVE items.
+   `transform: none` (NORMAL, bez !important) overrides idle `.filter-list__item[...active]`
+   transform: scale(1) rotate(0.001deg) przez specificity (selector wyższy bo dwa data attr).
+   Bez !important — inline GSAP/Flip transform nadal wygra (specificity 1,0,0,0 > class).
+   Cel: w paint window pomiędzy Flip apply position:absolute a apply transform, items
+   mają transform: none zamiast CSS rotate → brak konfliktu, brak top-left flicker. */
+[data-layout-group][data-transitioning='true'] .filter-list__item[data-filter-status='active'] {
+  transition: none !important;
+  transform: none;
+}

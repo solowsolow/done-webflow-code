@@ -1,0 +1,27 @@
+/* --- MWG Progressive sentences --- */
+
+.mwg022 .word {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  margin: -0.1em 0;
+}
+.mwg022 .word span {
+  display: block;
+  padding: 0.1em 0;
+}
+.mwg022-paragraph:not(:first-child) .word span {
+  transform: translate(0, 100%);
+}
+
+/* --- OSMO Logo Grid --- */
+
+[data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 11) {
+  display: none;
+}
+
+@media screen and (max-width: 991px) {
+  [data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 11) {
+    display: none;
+  }
+}

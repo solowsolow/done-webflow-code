@@ -1,0 +1,356 @@
+/* Supasaito Remove Flicker Page Load
+   Selektor BEZ html.w-mod-js qualifier — klasa w-mod-js jest dodawana przez
+   Webflow.js po jego załadowaniu, czyli PO pierwszym paint. W tym oknie
+   element [remove-flicker] miałby default opacity 1 → flash. Pre-paint hide
+   bezwarunkowy gwarantuje że JS-driven IX2/IX3 animacja od opacity 0 do 1
+   jest jedyną źródłem widoczności. Trade-off: no-JS browsery (~0% w 2026)
+   widzą element ukryty — acceptable. */
+[remove-flicker] {
+  opacity: 0;
+}
+
+/* SLW Sticky Nav Fix
+   UWAGA: ta reguła MUSI być zduplikowana inline w Webflow Site Head — fix-ix3
+   wymaga wczesnego paint blokowania, a CDN <link> może mieć latency. */
+html.w-mod-ix3 {
+  transform: none !important;
+  translate: none !important;
+  rotate: none !important;
+  scale: none !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Transition boot lock — applies when user arrives via SPA transition
+   (sessionStorage baton set by navigate()). Attribute set by inline
+   script below BEFORE first paint; removed by Site Footer handoff.
+────────────────────────────────────────────────────────────────── */
+
+/* Dark plate matching transition panel background color. */
+html[data-done-boot-transition] {
+  background-color: rgb(47, 43, 45);
+}
+
+/* Hide everything, then selectively reveal the transition overlay so
+   the logo stays visible while the new page loads — matches the
+   end-of-leave state from the outgoing page (continuity). */
+html[data-done-boot-transition] body {
+  visibility: hidden;
+}
+html[data-done-boot-transition] .transition,
+html[data-done-boot-transition] [data-transition-wrap] {
+  visibility: visible;
+}
+html[data-done-boot-transition] [data-transition-logo] {
+  opacity: 1 !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Intro scroll lock — blocks scroll during IX3 intro animation on
+   hard-load of home. Site Footer sets the attribute when shouldWaitForIntro,
+   removes it after INTRO_DURATION (5.25s). lenis.stop() handles the
+   intercepted wheel/touch, this CSS handles native scrollbar drag +
+   keyboard scroll + any path that bypasses Lenis.
+────────────────────────────────────────────────────────────────── */
+html[data-done-intro-active],
+html[data-done-intro-active] body {
+  overflow: hidden !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Skip intro — force intro's END STATE on SPA transition arrivals to
+   home so user doesn't re-watch the intro every time they come back
+   from a subpage. Intro still plays on hard load (no baton → no skip).
+   CSS !important wins over IX3's inline transforms for the lock
+   duration; Site Footer removes the attribute once intro would've
+   completed (5500ms), at which point IX3 inline end-state matches
+   what CSS was forcing — no visible handoff glitch.
+────────────────────────────────────────────────────────────────── */
+html[data-done-skip-intro] .home-hero_content-text-tetter {
+  transform: translate3d(0, 0%, 0) !important;
+  opacity: 1 !important;
+}
+html[data-done-skip-intro] .group_hero-logo-wrap {
+  transform: translate3d(27%, 0, 0) !important;
+}
+html[data-done-skip-intro] .hero-logo-wrap_others > * {
+  transform: translate3d(0, -250%, 0) !important;
+}
+html[data-done-skip-intro] .hero-logo-wrap_relative {
+  opacity: 0 !important;
+}
+html[data-done-skip-intro] .loader_logo {
+  visibility: hidden !important;
+}
+html[data-done-skip-intro] .nav_logo_wrap {
+  opacity: 1 !important;
+}
+
+/* --------------- Hide Scrollbars ------------------------------- */
+
+html,
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari i Edge */
+}
+
+/* ------------------ Underline Link Animation - UNIVERSAL ------------------ */
+
+/* ---------- Podstawowy wygląd linków tekstowych ---------- */
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.is--no-link),
+a.is--alt-link-link {
+  position: relative;
+  text-decoration: none;
+}
+
+/* ---------- DOMYŚLNA ANIMACJA: linia na starcie, znika i wchodzi druga ---------- */
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.button_main_element):not(.button_main_wrap):not(.is--alt-link):not(.is--no-link)::before,
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.button_main_element):not(.button_main_wrap):not(.is--alt-link):not(.is--no-link)::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--border-width--main);
+  background-color: var(--_theme---text);
+  transition: transform 0.5s cubic-bezier(0.625, 0.05, 0, 1);
+  pointer-events: none;
+}
+
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.button_main_element):not(.button_main_wrap):not(.is--alt-link):not(.is--no-link)::before {
+  transform-origin: left;
+  transform: scaleX(1) rotate(0.001deg);
+  transition-delay: 0.2s;
+}
+
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.button_main_element):not(.button_main_wrap):not(.is--alt-link):not(.is--no-link)::after {
+  transform-origin: right;
+  transform: scaleX(0) rotate(0.001deg);
+  transition-delay: 0s;
+}
+
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.button_main_element):not(.button_main_wrap):not(.is--alt-link):not(.is--no-link):hover::before {
+  transform-origin: right;
+  transform: scaleX(0) rotate(0.001deg);
+  transition-delay: 0s;
+}
+
+a:not(.btn):not(.button):not(.nav-link):not(.gallery_tab-link):not(.btn-animate-chars):not(.button_main_element):not(.button_main_wrap):not(.is--alt-link):not(.is--no-link):hover::after {
+  transform-origin: left;
+  transform: scaleX(1) rotate(0.001deg);
+  transition-delay: 0.2s;
+}
+
+/* ---------- ALT: brak linii na starcie, linia wchodzi na hover ---------- */
+a.is--alt-link::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--border-width--main);
+  background-color: var(--_theme---text);
+  transform: scaleX(0) rotate(0.001deg);
+  transform-origin: right;
+  transition: transform 0.5s cubic-bezier(0.625, 0.05, 0, 1);
+  transition-delay: 0s;
+  pointer-events: none;
+}
+
+a.is--alt-link:hover::before {
+  transform: scaleX(1) rotate(0.001deg);
+  transform-origin: left;
+  transition-delay: 0.2s;
+}
+
+/* ---------- NOLINK: brak efektu, zero dekoracji ---------- */
+a.is--no-link {
+  position: static !important;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+a.is--no-link::before,
+a.is--no-link::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* ---------- Custom Cursor ---------- */
+
+/* Cursor "default" */
+body,
+body :is([data-cursor='default'], [data-cursor='default'] *),
+body * {
+  cursor:
+    url('https://cdn.prod.website-files.com/684fd3662bf373c304f927ef/684fd3faf1928131d9db6e0d_936bd88147511144743f09f4477f4c1a_cursor-default.svg') 2 0,
+    auto;
+}
+
+/* Cursor "text" */
+body :is([data-cursor='text'], [data-cursor='text'] *),
+body :is(p, h1, h2, h3, h4, h5, h6, input[type='text'], textarea) {
+  cursor:
+    url('https://cdn.prod.website-files.com/684fd3662bf373c304f927ef/684fd3fa187280f5367673ab_a5441e26d72d35676d51172bd3a38038_cursor-text.svg') 9 19,
+    text;
+}
+
+/* Cursor "pointer" (Hover) */
+body :is([data-cursor='pointer'], [data-cursor='pointer'] *),
+body :is(a, a *, a p, button, button *, select, input[type='submit'], input[type='button'], input[type='radio'], input[type='checkbox']) {
+  cursor:
+    url('https://cdn.prod.website-files.com/684fd3662bf373c304f927ef/684fd3fa2e5a792140becaff_2b1e000c885a11daa778a26530dd8999_cursor-pointer.svg') 12 0,
+    pointer;
+}
+
+/* Cursor "grab" */
+body :is([data-cursor='grab'], [data-cursor='grab'] *) {
+  cursor:
+    url('https://cdn.prod.website-files.com/684fd3662bf373c304f927ef/684fd3fadd3e56db88677898_e4c3ca1346ce8749e9ebc404b2c38a67_cursor-grab.svg') 12 4,
+    grab;
+}
+
+/* Cursor "grabbing" */
+body :is([data-cursor='grabbing'], [data-cursor='grabbing'] *) {
+  cursor:
+    url('https://cdn.prod.website-files.com/684fd3662bf373c304f927ef/684fd3faadaedb1825819d22_93f8d20982e98baea5d26f613bf60af6_cursor-grabbing.svg') 12 0,
+    grabbing;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Cursor target — pre-paint visibility (anti-FOUC)
+   Site Footer initCursorScrollVisibility(scope) ustawia gsap.set(cursorEl, opacity:0)
+   przy init i animuje opacity 0↔1 gdy [data-move-cursor='content'] w viewport.
+   Bez pre-paint CSS browser pokazuje cursor target (Designer opacity: 1) PRZED
+   załadowaniem JS → glitch flash przy hard load home (~50–200ms widoczny kursor).
+
+   Pre-paint hide ZAWSZE — JS po unlocku (2.5s) animuje opacity gdy content active.
+   Na stronach BEZ data-move-cursor='content' (D Group, Profile etc.) JS robi
+   early return — :has() fallback CSS pokazuje cursor (modern browsers Chrome 105+,
+   Safari 15.4+, Firefox 121+). JS też ustawia opacity 1 explicit jako belt-and-suspenders.
+────────────────────────────────────────────────────────────────── */
+[data-move-cursor='target'] {
+  opacity: 0;
+}
+body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
+  opacity: 1;
+}
+
+/* ---------- GSAP ogonki liter ---------- */
+.gsap_split_letter {
+  display: inline-block;
+  overflow: visible;
+  padding-top: 0.3em;
+  margin-top: -0.3em;
+  contain: layout style paint;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+}
+
+@media not all and (min-resolution: 0.001dpcm) {
+  @supports (-webkit-appearance: none) {
+    .gsap_split_letter {
+      padding-top: 0.3em;
+    }
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   svh/dvh migration overrides (sesja 2026-04-24)
+   Webflow MCP style_tool nie dał się zaktualizować dla combo classes
+   (parent_style_names zwraca success ale CSS nie zmieniony) + media
+   breakpoints + 6 klas not-found (legacy / component scope).
+   CSS override bije wszystko z wygenerowanego CSS Webflow.
+────────────────────────────────────────────────────────────────── */
+
+/* Combo classes — dvh → svh (anti-jitter) */
+.u-layout-column-1.is-sticky-about-group {
+  top: clamp(var(--_spacing---section-space--small), var(--_spacing---section-space--small) + 7svh, 20svh) !important;
+}
+.mwg022-paragraph.is-hero {
+  font-size: clamp(5rem, 4vw + 3svh, 10rem) !important;
+}
+.home-hero_content-text-tetter.u-text.u-text-style-display,
+.home-hero_content-text-tetter.u-text.u-text-style-display.is--space {
+  font-size: clamp(15svh, 22vw, 22svh) !important;
+}
+.home-project_text.u-text {
+  font-size: clamp(4rem, 1.25rem + 20vw, 22svh) !important;
+  margin-bottom: calc(clamp(4rem, 1.25rem + 20vw, 25svh) + (-0.900001 * clamp(4rem, 1.25rem + 20vw, 25svh))) !important;
+}
+.home-project_text.u-text.is-paragraph {
+  font-size: clamp(1.25rem, 1.25rem + 20vw, 3svh) !important;
+  margin-top: calc(clamp(4rem, 1.25rem + 20vw, 25svh) + (-0.925001 * clamp(4rem, 1.25rem + 20vw, 25svh))) !important;
+  margin-bottom: 0 !important;
+}
+.home-project_paragraph-wrap {
+  margin-top: calc(clamp(4rem, 1.25rem + 20vw, 22svh) + (-0.750002 * clamp(4rem, 1.25rem + 20vw, 22svh))) !important;
+}
+.nav_sm-link.is--alt-link {
+  font-size: clamp(1.125rem, 1rem + 15vw, 2svh) !important;
+}
+
+/* Media breakpoints — home-hero text-tetter responsive font sizes */
+@media screen and (max-width: 991px) {
+  .home-hero_content-text-tetter.u-text.u-text-style-display {
+    font-size: clamp(11rem, 50vw - 12svh, 20svh) !important;
+  }
+}
+@media screen and (max-width: 767px) {
+  .home-hero_content-text-tetter.u-text.u-text-style-display {
+    font-size: clamp(6rem, 50vw - 12svh, 20svh) !important;
+  }
+}
+@media screen and (max-width: 479px) {
+  .home-hero_content-text-tetter.u-text.u-text-style-display {
+    font-size: clamp(6rem, 50vw - 10svh, 15svh) !important;
+  }
+}
+
+/* Not-found classes (MCP nie znalazł w Style Manager, prawdopodobnie
+   legacy albo generated w runtime przez snake init JS / inne). */
+.div-block-2 {
+  height: 100svh !important;
+}
+.mwg022-pin-height-2 {
+  height: 400svh !important;
+}
+.mwg022-container-2 {
+  height: 100svh !important;
+}
+.d-shape_snake-move-wrap {
+  height: 90svh !important;
+}
+.d-shape_snake-img-wrap.is-home-about,
+.d-shape_bg-wrap.is-home-about {
+  margin-top: 25svh !important;
+}
+
+/* Marquee with Scroll Direction */
+
+.marquee__advanced__svg,
+[data-marquee-direction='right'][data-marquee-status='inverted'] .marquee__advanced__svg {
+  transition: 0.5s cubic-bezier(0.625, 0.05, 0, 1);
+  transform: rotate(-15deg);
+}
+
+[data-marquee-status='inverted'] .marquee__advanced__svg,
+[data-marquee-direction='right'][data-marquee-status='normal'] .marquee__advanced__svg {
+  transform: rotate(15deg);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Safari fallback — hide refraction layers.
+   Safari supports `backdrop-filter: url(#svg-filter)` od 17.4+, ale chain
+   z feImage + feGaussianBlur + feDisplacementMap ma incomplete support.
+   feDisplacementMap często nie działa → element renderuje się bez efektu
+   (może też blokować widoczność content pod nim). Cleanest fallback:
+   hide refraction completely w Safari, blur layer (.is-blur) działa.
+────────────────────────────────────────────────────────────────── */
+html[data-browser-safari] .u-image-wrapper.is-brand-stone-bg-image.is-refraction {
+  display: none;
+}
