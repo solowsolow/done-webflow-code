@@ -1,5 +1,6 @@
 // =============================================================================
 // D ONE — Site Footer (orchestrator + custom transition + site-wide animations)
+// Last modified: 2026-04-29 — CDN propagation test
 // =============================================================================
 // Hostowane na jsDelivr CDN. Repo: github.com/solowsolow/done-webflow-code
 //
