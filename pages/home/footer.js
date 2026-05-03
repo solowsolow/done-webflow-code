@@ -216,6 +216,23 @@ window.initFlipOnScroll = function (scope) {
 
   buildTimeline();
 
+  // Webflow IX3 robi scroll-driven scaleX na .scaling-element__small-box
+  // (rośnie 0 → 82px wraz ze scrollem). Parent ma flex-center, więc gdy small-box
+  // rośnie, wrapper.viewport.left przesuwa się o ~half_of_new_width w lewo.
+  // Math liczony w buildTimeline() przy scrollY=0 (IX3 collapsed) używa stale
+  // wartości — target ląduje przesunięty o ten offset, z białym marginesem po prawej.
+  // Fix: rebuild gdy sekcja zbliża się do viewport (IX3 already expanded).
+  if (!triggerEl.dataset.flipRebuildBound) {
+    triggerEl.dataset.flipRebuildBound = '1';
+    ScrollTrigger.create({
+      id: ST_ID + '-rebuild',
+      trigger: triggerEl,
+      start: 'top 80%', // gdy section.top jest 80% od top viewport (sekcja blisko)
+      once: true,
+      onEnter: function () { buildTimeline(); },
+    });
+  }
+
   if (!window.__flipOnScrollResizeBound) {
     window.__flipOnScrollResizeBound = true;
     window.addEventListener('resize', function () {
