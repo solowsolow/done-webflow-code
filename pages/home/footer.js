@@ -172,10 +172,13 @@ window.initFlipOnScroll = function (scope) {
     gsap.set(targetEl, { clearProps: 'all' });
 
     var stickyOff = stickyHeader.offsetTop;
-    var shRect = stickyHeader.getBoundingClientRect();
-    var w0Rect = wrappers[0].getBoundingClientRect();
-    var startTop = Math.round(w0Rect.top - shRect.top);
-    var startLeft = Math.round(w0Rect.left - shRect.left);
+    // Liczymy offset target'a od jego najbliższego positioned ancestora
+    // (offsetParent), żeby trafić w (0, 0) viewport. Nie zależy od pozycji
+    // stickyHeadera (left-aligned vs centered) ani od kontenera wrappers[0] —
+    // odporne na zmiany layoutu sekcji (np. po przejściu OSMO na centered).
+    var paRect = (targetEl.offsetParent || document.body).getBoundingClientRect();
+    var startTop = Math.round(-paRect.top);
+    var startLeft = Math.round(-paRect.left);
 
     var vw = window.innerWidth;
     var vh = window.innerHeight;
@@ -194,8 +197,8 @@ window.initFlipOnScroll = function (scope) {
     });
 
     tl.to(targetEl, {
-      top: -startTop,
-      left: -startLeft,
+      top: startTop,
+      left: startLeft,
       width: vw,
       height: vh,
       borderRadius: 0,
