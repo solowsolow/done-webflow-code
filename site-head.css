@@ -271,9 +271,6 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 .u-layout-column-1.is-sticky-about-group {
   top: clamp(var(--_spacing---section-space--small), var(--_spacing---section-space--small) + 7svh, 20svh) !important;
 }
-.mwg022-paragraph.is-hero {
-  font-size: clamp(5rem, 4vw + 3svh, 10rem) !important;
-}
 .home-hero_content-text-tetter.u-text.u-text-style-display,
 .home-hero_content-text-tetter.u-text.u-text-style-display.is--space {
   font-size: clamp(15svh, 22vw, 22svh) !important;
@@ -314,12 +311,6 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 /* Not-found classes (MCP nie znalazł w Style Manager, prawdopodobnie
    legacy albo generated w runtime przez snake init JS / inne). */
 .div-block-2 {
-  height: 100svh !important;
-}
-.mwg022-pin-height-2 {
-  height: 400svh !important;
-}
-.mwg022-container-2 {
   height: 100svh !important;
 }
 .d-shape_snake-move-wrap {

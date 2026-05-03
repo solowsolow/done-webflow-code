@@ -2,62 +2,10 @@
 // D ONE — Home Page Footer
 // =============================================================================
 // Inity per-page dla strony Home:
-//   - initMwg022 (progressive sentences scroll reveal)
 //   - initParallaxImageGalleryThumbnails (slideshow z observer)
 //   - initFlipOnScroll (scaling element header flip)
 //   - initLogoGrid (rotujące logos w gridzie)
 // =============================================================================
-
-window.initMwg022 = function (scope) {
-  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-  var ctx = scope || document;
-
-  ctx.querySelectorAll('.mwg022:not([data-mwg022-ready])').forEach(function (root) {
-    root.setAttribute('data-mwg022-ready', '');
-
-    var pinHeight = root.querySelector('.mwg022-pin-height');
-    var paragraphs = root.querySelectorAll('.mwg022-paragraph');
-    if (!pinHeight || !paragraphs.length) return;
-
-    paragraphs.forEach(function (paragraph) { wrapWordsInSpan(paragraph); });
-
-    var tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: pinHeight,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-      },
-    });
-
-    paragraphs.forEach(function (paragraph, index) {
-      if (!paragraphs[index + 1]) return;
-      tl.to(paragraphs[index + 1].querySelectorAll('.word span'), {
-        y: '0%',
-        duration: 1,
-        stagger: 0.15,
-        ease: 'power4.out',
-      });
-    });
-
-    // Wrap each word in nested spans using DOM API (XSS-safe — text content
-    // never goes through HTML parsing).
-    function wrapWordsInSpan(element) {
-      var text = element.textContent;
-      element.textContent = '';
-      var words = text.split(' ');
-      words.forEach(function (word, i) {
-        if (i > 0) element.appendChild(document.createTextNode(' '));
-        var outer = document.createElement('span');
-        outer.className = 'word';
-        var inner = document.createElement('span');
-        inner.textContent = word;
-        outer.appendChild(inner);
-        element.appendChild(outer);
-      });
-    }
-  });
-};
 
 (function () {
   if (typeof gsap !== 'undefined' && typeof Observer !== 'undefined' && typeof CustomEase !== 'undefined') {
