@@ -203,8 +203,8 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 .gsap_split_letter {
   display: inline-block;
   overflow: visible;
-  padding: 0.2em;
-  margin: -0.2em;
+  padding: 0.3em;
+  margin: -0.3em;
   contain: layout style paint;
   transform-style: preserve-3d;
   backface-visibility: visible;
@@ -213,8 +213,8 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 @media not all and (min-resolution: 0.001dpcm) {
   @supports (-webkit-appearance: none) {
     .gsap_split_letter {
-      padding: 0.2em;
-      margin: -0.2em;
+      padding: 0.3em;
+      margin: -0.3em;
     }
   }
 }
