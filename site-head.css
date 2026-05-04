@@ -203,8 +203,8 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 .gsap_split_letter {
   display: inline-block;
   overflow: visible;
-  padding-top: 0.3em;
-  margin-top: -0.3em;
+  padding: 0.2em;
+  margin: -0.2em;
   contain: layout style paint;
   transform-style: preserve-3d;
   backface-visibility: visible;
