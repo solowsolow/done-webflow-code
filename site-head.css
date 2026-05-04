@@ -213,7 +213,11 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
   overflow: visible;
   padding: 0.3em 0;
   margin: -0.3em 0;
-  contain: layout style paint;
+  /* contain: layout style (BEZ paint!) — `paint` containment clipuje content
+     do bbox elementu, więc jeśli font ma right overshoot (kerning, swash, italic)
+     albo Webflow GSAP Animations dodaje transform — ostatnie pixele liter są
+     ucinane po prawej. layout+style zachowuje performance isolation bez clipowania. */
+  contain: layout style;
   transform-style: preserve-3d;
   backface-visibility: visible;
 }
