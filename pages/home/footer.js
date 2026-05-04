@@ -5,6 +5,7 @@
 //   - initParallaxImageGalleryThumbnails (slideshow z observer)
 //   - initFlipOnScroll (scaling element header flip)
 //   - initLogoGrid (rotujące logos w gridzie)
+//   - initHomeHeroVideoDelay (delayed start hero video po 3s)
 // =============================================================================
 
 (function () {
@@ -245,6 +246,46 @@ window.initFlipOnScroll = function (scope) {
       resizeTimer = setTimeout(buildTimeline, 100);
     });
   }
+};
+
+/**
+ * window.initHomeHeroVideoDelay(scope) — opóźnia start video [data-home-hero-video]
+ * o 3 sekundy od momentu inita (= boot strony, po DOMContentLoaded → bootCustomAnimations).
+ *
+ * Działa niezależnie od stanu autoplay w HTML — jeśli browser już zaczął odtwarzać
+ * przez autoplay attribute, init pause()uje natychmiast i resetuje currentTime do 0,
+ * potem po 3s wywołuje play().
+ *
+ * Wymagania video tagu (Webflow Designer):
+ *   - `muted` — wymagane dla programmatic .play() bez user interaction (browser
+ *     autoplay policy). Bez muted Promise z .play() zostanie rejected.
+ *   - `playsinline` — wymagane dla iOS (inaczej video startuje fullscreen).
+ *   - `autoplay` — opcjonalne (i tak nadpisujemy logiką tutaj).
+ *
+ * Guard `data-hero-video-delay-ready` chroni przed double-bind.
+ */
+window.initHomeHeroVideoDelay = function (scope) {
+  var ctx = scope || document;
+  var DELAY_MS = 3000;
+
+  ctx.querySelectorAll('[data-home-hero-video]').forEach(function (video) {
+    if (video.dataset.heroVideoDelayReady) return;
+    video.dataset.heroVideoDelayReady = '1';
+
+    // Pause + reset — na wypadek gdyby browser już zaczął przez autoplay attribute.
+    video.pause();
+    try { video.currentTime = 0; } catch (e) {}
+
+    setTimeout(function () {
+      var p = video.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(function (err) {
+          // Najczęstsza przyczyna: video nie ma `muted` (browser autoplay policy).
+          console.warn('[initHomeHeroVideoDelay] play() rejected:', err && err.message);
+        });
+      }
+    }, DELAY_MS);
+  });
 };
 
 window.initLogoGrid = function (scope) {
