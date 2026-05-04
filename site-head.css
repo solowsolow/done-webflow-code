@@ -199,12 +199,20 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
   opacity: 1;
 }
 
-/* ---------- GSAP ogonki liter ---------- */
-.gsap_split_letter {
+/* ──────────────────────────────────────────────────────────────────
+   GSAP SplitText — pełen safety padding dla polskich ogonków + brzuszków liter.
+   Padding TYLKO vertical (top/bottom), bez horizontal — verified w chrome-devtools-mcp
+   że horizontal padding 0.1em rozjeżdża layout o +17% (margin -0.1em NIE wraca w pełni).
+   Vertical padding 0.3em + margin -0.3em = 0px layout shift, opens space dla:
+   - DESCENDERY (poniżej baseline): ą, ę, ogonki + optical overshoot brzuszków D, B, O
+   - ASCENDERY/DIAKRYTYKI (powyżej x-height): Ć, Ó, Ż, Ź, Ń, Ś, Ł, akcenty
+────────────────────────────────────────────────────────────────── */
+.gsap_split_letter,
+.gsap_split_word {
   display: inline-block;
   overflow: visible;
-  padding: 0.3em;
-  margin: -0.3em;
+  padding: 0.3em 0;
+  margin: -0.3em 0;
   contain: layout style paint;
   transform-style: preserve-3d;
   backface-visibility: visible;
@@ -212,11 +220,24 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 
 @media not all and (min-resolution: 0.001dpcm) {
   @supports (-webkit-appearance: none) {
-    .gsap_split_letter {
-      padding: 0.3em;
-      margin: -0.3em;
+    .gsap_split_letter,
+    .gsap_split_word {
+      padding: 0.3em 0;
+      margin: -0.3em 0;
     }
   }
+}
+
+/* Marquee container — pozwól letters z descenderami/ascenderami wystawać poza
+   marquee bbox vertically. Marquee MUSI mieć clip horizontal (zachować scroll
+   effect bez widocznych off-screen items po lewej/prawej), ale vertical clip
+   ucina polskie ogonki + optical overshoot brzuszków.
+   Trick: clip-path z negative inset top/bottom + 0 left/right — zastępuje
+   overflow:hidden, keeps horizontal clipping, opens vertical.
+   100px wystarczy dla największego font-size (~180px × 0.3em = 54px overflow). */
+.marquee-advanced {
+  overflow: visible !important;
+  clip-path: inset(-100px 0);
 }
 
 /* ──────────────────────────────────────────────────────────────────
