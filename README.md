@@ -81,9 +81,6 @@ W **Site Head** w Webflow musi być zachowane jako inline (pre-paint critical):
   try {
     if (sessionStorage.getItem('__doneInTransition') === '1') {
       document.documentElement.setAttribute('data-done-boot-transition', '1');
-      if (location.pathname === '/' || location.pathname === '') {
-        document.documentElement.setAttribute('data-done-skip-intro', '1');
-      }
     }
   } catch (e) {}
   try {

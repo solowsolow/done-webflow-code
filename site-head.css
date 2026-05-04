@@ -44,47 +44,6 @@ html[data-done-boot-transition] [data-transition-logo] {
   opacity: 1 !important;
 }
 
-/* ──────────────────────────────────────────────────────────────────
-   Intro scroll lock — blocks scroll during IX3 intro animation on
-   hard-load of home. Site Footer sets the attribute when shouldWaitForIntro,
-   removes it after INTRO_DURATION (5.25s). lenis.stop() handles the
-   intercepted wheel/touch, this CSS handles native scrollbar drag +
-   keyboard scroll + any path that bypasses Lenis.
-────────────────────────────────────────────────────────────────── */
-html[data-done-intro-active],
-html[data-done-intro-active] body {
-  overflow: hidden !important;
-}
-
-/* ──────────────────────────────────────────────────────────────────
-   Skip intro — force intro's END STATE on SPA transition arrivals to
-   home so user doesn't re-watch the intro every time they come back
-   from a subpage. Intro still plays on hard load (no baton → no skip).
-   CSS !important wins over IX3's inline transforms for the lock
-   duration; Site Footer removes the attribute once intro would've
-   completed (5500ms), at which point IX3 inline end-state matches
-   what CSS was forcing — no visible handoff glitch.
-────────────────────────────────────────────────────────────────── */
-html[data-done-skip-intro] .home-hero_content-text-tetter {
-  transform: translate3d(0, 0%, 0) !important;
-  opacity: 1 !important;
-}
-html[data-done-skip-intro] .group_hero-logo-wrap {
-  transform: translate3d(27%, 0, 0) !important;
-}
-html[data-done-skip-intro] .hero-logo-wrap_others > * {
-  transform: translate3d(0, -250%, 0) !important;
-}
-html[data-done-skip-intro] .hero-logo-wrap_relative {
-  opacity: 0 !important;
-}
-html[data-done-skip-intro] .loader_logo {
-  visibility: hidden !important;
-}
-html[data-done-skip-intro] .nav_logo_wrap {
-  opacity: 1 !important;
-}
-
 /* --------------- Hide Scrollbars ------------------------------- */
 
 html,

@@ -252,13 +252,6 @@ document.addEventListener('DOMContentLoaded', function () {
     sessionStorage.removeItem('__doneInTransition');
   } catch (e) {}
 
-  var navEntry = performance.getEntriesByType('navigation')[0];
-  var navType = navEntry ? navEntry.type : 'navigate';
-  var isHardLoad = navType === 'navigate' || navType === 'reload';
-  var INTRO_DURATION = 5.25;
-  var isHomePath = location.pathname === '/' || location.pathname === '';
-  var shouldWaitForIntro = isHardLoad && isHomePath && !wasInTransition;
-
   function bootCustomAnimations() {
     initCustomAnimations(document);
     if (typeof initLumosColorChanger === 'function') initLumosColorChanger();
@@ -292,20 +285,6 @@ document.addEventListener('DOMContentLoaded', function () {
           if (next) gsap.set(next, { clearProps: 'transform,translate,rotate,scale' });
           if (lenis) lenis.start();
           if (hasScrollTrigger) ScrollTrigger.refresh();
-        });
-        if (document.documentElement.hasAttribute('data-done-skip-intro')) {
-          setTimeout(function () {
-            document.documentElement.removeAttribute('data-done-skip-intro');
-          }, 5500);
-        }
-      } else if (shouldWaitForIntro) {
-        // Scroll block during intro (CSS lock driven by attribute on <html>)
-        document.documentElement.setAttribute('data-done-intro-active', '1');
-        if (lenis) lenis.stop();
-        gsap.delayedCall(INTRO_DURATION, function () {
-          document.documentElement.removeAttribute('data-done-intro-active');
-          if (lenis) lenis.start();
-          bootCustomAnimations();
         });
       } else {
         bootCustomAnimations();
