@@ -266,7 +266,7 @@ window.initFlipOnScroll = function (scope) {
  */
 window.initHomeHeroVideoDelay = function (scope) {
   var ctx = scope || document;
-  var DELAY_MS = 6000;
+  var DELAY_MS = 7000;
 
   ctx.querySelectorAll('[data-home-hero-video]').forEach(function (video) {
     if (video.dataset.heroVideoDelayReady) return;
