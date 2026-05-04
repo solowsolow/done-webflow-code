@@ -213,7 +213,8 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 @media not all and (min-resolution: 0.001dpcm) {
   @supports (-webkit-appearance: none) {
     .gsap_split_letter {
-      padding-top: 0.3em;
+      padding: 0.2em;
+      margin: -0.2em;
     }
   }
 }
