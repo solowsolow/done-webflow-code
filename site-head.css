@@ -320,6 +320,18 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Page Transition — prostokątne paski zamiast półokrągłych łuków.
+   .transition__panel-circle ma border-radius: 50% i width 1890px (= szerszy niż
+   panel 1512px). Z parent .transition__panel-top/bottom { overflow: hidden }
+   widać tylko central część koła = półokrągły łuk u góry/dołu zasłonki.
+   Override: border-radius: 0 — circle staje się prostokątem, animacja scaleY
+   0→1 zostaje (paski wciąż rosną i kurczą się), ale bez łuku.
+────────────────────────────────────────────────────────────────── */
+.transition__panel-circle {
+  border-radius: 0 !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Safari fallback — hide refraction layers.
    Safari supports `backdrop-filter: url(#svg-filter)` od 17.4+, ale chain
    z feImage + feGaussianBlur + feDisplacementMap ma incomplete support.
