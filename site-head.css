@@ -146,7 +146,7 @@ body,
 body :is([data-cursor='default'], [data-cursor='default'] *),
 body * {
   cursor:
-    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa60d748ec55a143914eab_cursor-default.svg') 2 0,
+    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa7528b9920cae32376add_cursor-default.svg') 2 0,
     auto;
 }
 
@@ -154,7 +154,7 @@ body * {
 body :is([data-cursor='text'], [data-cursor='text'] *),
 body :is(p, h1, h2, h3, h4, h5, h6, input[type='text'], textarea) {
   cursor:
-    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa60d74b0aaadd6f9b7079_cursor-text.svg') 9 19,
+    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa7528d2e70ae579b885e5_cursor-text.svg') 9 19,
     text;
 }
 
@@ -162,21 +162,21 @@ body :is(p, h1, h2, h3, h4, h5, h6, input[type='text'], textarea) {
 body :is([data-cursor='pointer'], [data-cursor='pointer'] *),
 body :is(a, a *, a p, button, button *, select, input[type='submit'], input[type='button'], input[type='radio'], input[type='checkbox']) {
   cursor:
-    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa60d7d41a05c439ec5d33_cursor-pointer.svg') 12 0,
+    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa752822d02e17592f395f_cursor-pointer.svg') 12 0,
     pointer;
 }
 
 /* Cursor "grab" */
 body :is([data-cursor='grab'], [data-cursor='grab'] *) {
   cursor:
-    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa60d7dcf144cb34a8e28e_cursor-grab.svg') 12 4,
+    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa7528f67b35bd2d665858_cursor-grab.svg') 12 4,
     grab;
 }
 
 /* Cursor "grabbing" */
 body :is([data-cursor='grabbing'], [data-cursor='grabbing'] *) {
   cursor:
-    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa60d757ca17f1de62e757_cursor-grabbing.svg') 12 0,
+    url('https://cdn.prod.website-files.com/69a5bb12b4f6f3f67791b05e/69fa752852c1b3e9e1f18e1b_cursor-grabbing.svg') 12 0,
     grabbing;
 }
 
