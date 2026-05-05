@@ -84,16 +84,34 @@ for i in 1 2 3; do
   [ $i -lt 3 ] && sleep 1
 done
 
+# Pobierz krótki commit-hash (do hot-fix URL workaround)
+COMMIT_SHORT=$(git rev-parse --short HEAD)
+COMMIT_PATH="/gh/$GH_USER/$GH_REPO@$COMMIT_SHORT/$FILE"
+
 # Podsumowanie
 echo ""
 if [ $ALL_MATCH -eq 1 ]; then
   echo "==> [5/5] ✓ Deploy complete"
-  echo "    URL: https://cdn.jsdelivr.net$CDN_PATH"
+  echo ""
+  echo "    @main URL (default, zmiany propagują się automatycznie):"
+  echo "      https://cdn.jsdelivr.net$CDN_PATH"
+  echo ""
+  echo "    @$COMMIT_SHORT URL (hot-fix workaround — gdy @main edge cache trzyma stale):"
+  echo "      https://cdn.jsdelivr.net$COMMIT_PATH"
+  echo ""
   echo "    Reload strony — bez Webflow republish."
 else
   echo "==> [5/5] ⚠ Deploy zakończony z mismatchami"
-  echo "    Niektóre próby pokazały starą wersję — możliwe że kolejny edge cache jeszcze trzyma."
-  echo "    Spróbuj za 1-2 min albo wykonaj kolejny purge:"
-  echo "    curl https://purge.jsdelivr.net$CDN_PATH"
+  echo ""
+  echo "    Niektóre próby pokazały starą wersję — jsDelivr edge cache trzyma stale."
+  echo "    UWAGA: @main URL może mieć stale content na konkretnym edge przez 8-12h+,"
+  echo "    immune na purge (zaobserwowane 2026-05-06). Query string ?v=... ignored."
+  echo ""
+  echo "    Workaround #1: kolejny purge (zwykle pomaga jeśli throttle clear):"
+  echo "      curl https://purge.jsdelivr.net$CDN_PATH"
+  echo ""
+  echo "    Workaround #2: w Webflow podmień URL na commit-hash (gwarantowany fresh fetch):"
+  echo "      https://cdn.jsdelivr.net$COMMIT_PATH"
+  echo "    Po ~24h @main edge cache odświeży się sam, można wrócić."
   exit 2
 fi
