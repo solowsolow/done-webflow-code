@@ -17,6 +17,10 @@
 // orchestrator.
 // -----------------------------------------------------------------------------
 gsap.registerPlugin(CustomEase);
+// SplitText optional — używany tylko w runLeave/runEnter dla nowego text logo
+// w transition. Jeśli plugin nieobecny (np. starsza wersja GSAP w Webflow),
+// transition nadal działa, tylko bez stagger lines (fallback do empty array).
+if (typeof SplitText !== 'undefined') gsap.registerPlugin(SplitText);
 CustomEase.create('osmo', '0.625, 0.05, 0, 1');
 CustomEase.create('main', '0.65, 0.01, 0.05, 0.99');
 gsap.defaults({ ease: 'osmo', duration: 0.6 });
@@ -109,6 +113,37 @@ function initCustomAnimations(scope) {
   });
 }
 
+// Determines what to animate with stagger inside [data-transition-logo]:
+// - SVG paths (old logo) → return paths NodeList
+// - Text content (new logo) → SplitText na lines, return lines array
+// - Nothing (no logo or no SplitText plugin) → empty array
+function getTransitionStagger(wrap) {
+  var logo = wrap.querySelector('[data-transition-logo]');
+  if (!logo) return [];
+
+  // Stary SVG logo — paths gotowe do animacji
+  var paths = wrap.querySelectorAll('path');
+  if (paths.length > 0) return paths;
+
+  // Nowy text logo — split na lines z mask:'lines' (parent overflow:hidden
+  // żeby `yPercent: 105` faktycznie chowało linie poza widoczny obszar).
+  if (typeof SplitText === 'undefined') return [];
+
+  // Revert poprzedniego splita żeby nie kumulować zagnieżdżonych spans przy
+  // wielokrotnych transitions w tej samej sesji.
+  if (window.__transitionSplit) {
+    try { window.__transitionSplit.revert(); } catch (e) {}
+    window.__transitionSplit = null;
+  }
+  try {
+    window.__transitionSplit = SplitText.create(logo, { type: 'lines', mask: 'lines' });
+    return window.__transitionSplit.lines;
+  } catch (e) {
+    console.warn('[transition] SplitText failed:', e && e.message);
+    return [];
+  }
+}
+
 function runLeave(container) {
   var wrap = document.querySelector('[data-transition-wrap]');
   if (!wrap) return Promise.resolve();
@@ -116,7 +151,7 @@ function runLeave(container) {
   var panelTop = wrap.querySelector('[data-transition-panel-top]');
   var panelBot = wrap.querySelector('[data-transition-panel-bottom]');
   var logo = wrap.querySelector('[data-transition-logo]');
-  var paths = wrap.querySelectorAll('path');
+  var stagger = getTransitionStagger(wrap);
 
   return new Promise(function (resolve) {
     if (reducedMotion) {
@@ -129,10 +164,12 @@ function runLeave(container) {
     tl.set(panelTop, { scaleY: 0, height: '15vw' }, 0);
     tl.set(panelBot, { scaleY: 1, height: '20vw' }, 0);
     tl.set(logo, { autoAlpha: 1 });
-    tl.set(paths, { yPercent: 105 });
+    if (stagger.length) tl.set(stagger, { yPercent: 105 });
     tl.fromTo(panel, { yPercent: 0 }, { yPercent: -100, duration: 1 }, 0);
     tl.fromTo(panelTop, { scaleY: 0 }, { scaleY: 1, duration: 1 }, '<');
-    tl.fromTo(paths, { yPercent: 105 }, { yPercent: 0, duration: 0.8, ease: 'expo.out', stagger: { amount: 0.06 } }, '<+=0.4');
+    if (stagger.length) {
+      tl.fromTo(stagger, { yPercent: 105 }, { yPercent: 0, duration: 0.8, ease: 'expo.out', stagger: { amount: 0.06 } }, '<+=0.4');
+    }
     tl.fromTo(container, { y: '0vh' }, { y: '-15dvh', duration: 1 }, 0);
   });
 }
@@ -142,7 +179,13 @@ function runEnter(container) {
   if (!wrap) return Promise.resolve();
   var panel = wrap.querySelector('[data-transition-panel]');
   var panelBot = wrap.querySelector('[data-transition-panel-bottom]');
-  var paths = wrap.querySelectorAll('path');
+  var logo = wrap.querySelector('[data-transition-logo]');
+  var stagger = wrap.querySelectorAll('path');
+  // Dla text logo użyj wcześniej utworzonego splita (z runLeave) — nie tworzymy
+  // nowego, tylko reuse istniejące lines żeby kontynuować ten sam ruch.
+  if (stagger.length === 0 && window.__transitionSplit && window.__transitionSplit.lines) {
+    stagger = window.__transitionSplit.lines;
+  }
 
   return new Promise(function (resolve) {
     if (reducedMotion) {
@@ -150,13 +193,25 @@ function runEnter(container) {
       resolve();
       return;
     }
-    var tl = gsap.timeline({ onComplete: resolve });
+    var tl = gsap.timeline({
+      onComplete: function () {
+        // Po enter: hide logo + revert SplitText (przywróć oryginalny markup tekstu).
+        if (logo) gsap.set(logo, { autoAlpha: 0 });
+        if (window.__transitionSplit) {
+          try { window.__transitionSplit.revert(); } catch (e) {}
+          window.__transitionSplit = null;
+        }
+        resolve();
+      },
+    });
     tl.add('in', 0.2);
     tl.set(container, { autoAlpha: 1 }, 'in');
     tl.fromTo(panel, { yPercent: -100 }, { yPercent: -200, duration: 1, overwrite: 'auto', immediateRender: false }, 'in');
     tl.fromTo(panelBot, { scaleY: 1 }, { scaleY: 0, duration: 1 }, '<');
     tl.set(panel, { autoAlpha: 0 }, '>');
-    tl.to(paths, { yPercent: -130, duration: 1.2, ease: 'expo.inOut', stagger: { amount: -0.06 } }, 'in-=0.4');
+    if (stagger.length) {
+      tl.to(stagger, { yPercent: -130, duration: 1.2, ease: 'expo.inOut', stagger: { amount: -0.06 } }, 'in-=0.4');
+    }
     tl.from(container, { y: '25dvh', duration: 1 }, 'in');
   });
 }
