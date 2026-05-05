@@ -258,15 +258,21 @@ window.addEventListener('pageshow', function (e) {
   if (hasScrollTrigger) ScrollTrigger.refresh();
 });
 
+// Home: multi-stage force scroll-to-top.
+// Pojedynczy scrollTo(0,0) w DOMContentLoaded okazał się niewystarczający —
+// Webflow / Lenis / browser scroll restoration mogą restorować scroll PO
+// naszym fix (sequence problem). Force w 5 punktach: pre-Lenis, post-Lenis,
+// rAF, setTimeout 100/500, window.load.
+function forceHomeScrollTop() {
+  if (location.pathname !== '/' && location.pathname !== '') return;
+  window.scrollTo(0, 0);
+  if (window.lenis) window.lenis.scrollTo(0, { immediate: true, force: true });
+}
+
 // Boot
 document.addEventListener('DOMContentLoaded', function () {
-  // Home zawsze startuje od góry — niezależnie od browser scroll restoration.
-  // history.scrollRestoration = 'manual' jest już set, ale browser może
-  // mimo to spróbować restore w niektórych edge cases (popstate, back button).
-  // Explicit scroll(0,0) kryje wszystkie scenariusze hard load home.
-  if (location.pathname === '/' || location.pathname === '') {
-    window.scrollTo(0, 0);
-  }
+  // Stage 1: pre-Lenis init (browser scroll = 0 zanim Lenis sync'uje).
+  forceHomeScrollTop();
 
   history.replaceState({ url: location.href }, '', location.href);
   initLenis();
@@ -274,11 +280,15 @@ document.addEventListener('DOMContentLoaded', function () {
   initLenisToggleHandlers();
   applyTheme(document.querySelector('[data-barba="container"]'));
 
-  // Lenis ma własne internal scroll state — sync do 0 też przez Lenis API
-  // (window.scrollTo + Lenis raf mogą się rozjechać w pierwszej klatce).
-  if ((location.pathname === '/' || location.pathname === '') && lenis) {
-    lenis.scrollTo(0, { immediate: true, force: true });
-  }
+  // Stage 2: post-Lenis init (Lenis ma swoje internal scroll, sync do 0).
+  forceHomeScrollTop();
+
+  // Stage 3: następna klatka po init (kryje przypadki gdzie sync był deferred).
+  requestAnimationFrame(forceHomeScrollTop);
+
+  // Stage 4 & 5: po krótkim opóźnieniu (kryje async layout shifts, image loads).
+  setTimeout(forceHomeScrollTop, 100);
+  setTimeout(forceHomeScrollTop, 500);
 
   var wasInTransition = false;
   try {
@@ -327,6 +337,21 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(waitForGSAP, 50);
     }
   })();
+});
+
+// Stage 6: window.load (po wszystkich resources include images/fonts) — final
+// safety net dla home scroll-to-top. Webflow auto-restore scroll może odpalić
+// po images load. Plus reset ScrollTriggers żeby flip/marquee wracały do
+// starting position (= scroll 0).
+window.addEventListener('load', function () {
+  if (location.pathname !== '/' && location.pathname !== '') return;
+  forceHomeScrollTop();
+  if (window.ScrollTrigger) {
+    requestAnimationFrame(function () {
+      forceHomeScrollTop();
+      window.ScrollTrigger.refresh();
+    });
+  }
 });
 
 // -----------------------------------------------------------------------------
