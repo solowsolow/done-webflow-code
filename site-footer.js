@@ -207,6 +207,18 @@ window.addEventListener('popstate', function (e) {
 // bfcache restore: overlay was covering at unload → retract so user isn't stuck
 window.addEventListener('pageshow', function (e) {
   if (!e.persisted) return;
+
+  // Home page MUSI startować zawsze świeżo. Bfcache (Safari/Chrome back-forward
+  // cache) zachowuje JS state z poprzedniego momentu — intro Webflow IX2/IX3
+  // już zagrało, ScrollTriggers są w stale state, scroll position zachowany.
+  // User wraca na home → widzi "śpiącą" stronę zamiast fresh intro.
+  // Fix: force reload na home jeśli z bfcache. Inne podstrony zostają w bfcache
+  // (lepszy UX nawigacji wstecz — szybkie przejście bez re-fetch).
+  if (location.pathname === '/' || location.pathname === '') {
+    location.reload();
+    return;
+  }
+
   isNavigating = false;
 
   var wrap = document.querySelector('[data-transition-wrap]');
@@ -240,11 +252,25 @@ window.addEventListener('pageshow', function (e) {
 
 // Boot
 document.addEventListener('DOMContentLoaded', function () {
+  // Home zawsze startuje od góry — niezależnie od browser scroll restoration.
+  // history.scrollRestoration = 'manual' jest już set, ale browser może
+  // mimo to spróbować restore w niektórych edge cases (popstate, back button).
+  // Explicit scroll(0,0) kryje wszystkie scenariusze hard load home.
+  if (location.pathname === '/' || location.pathname === '') {
+    window.scrollTo(0, 0);
+  }
+
   history.replaceState({ url: location.href }, '', location.href);
   initLenis();
   initScrollToAnchorLenis();
   initLenisToggleHandlers();
   applyTheme(document.querySelector('[data-barba="container"]'));
+
+  // Lenis ma własne internal scroll state — sync do 0 też przez Lenis API
+  // (window.scrollTo + Lenis raf mogą się rozjechać w pierwszej klatce).
+  if ((location.pathname === '/' || location.pathname === '') && lenis) {
+    lenis.scrollTo(0, { immediate: true, force: true });
+  }
 
   var wasInTransition = false;
   try {
