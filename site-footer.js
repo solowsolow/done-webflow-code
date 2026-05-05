@@ -201,6 +201,14 @@ document.addEventListener('click', function (e) {
 });
 
 window.addEventListener('popstate', function (e) {
+  // Browser back button na home → zawsze location.reload() (fresh state, intro
+  // odpala od początku, scroll resetuje na 0). Custom navigate via runLeave +
+  // location.replace mogłoby zachować bfcache state lub przejść przez stale
+  // ScrollTriggers — reload daje pewność świeżego startu.
+  if (location.pathname === '/' || location.pathname === '') {
+    location.reload();
+    return;
+  }
   navigate((e.state && e.state.url) || location.href, true);
 });
 
