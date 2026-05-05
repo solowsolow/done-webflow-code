@@ -181,7 +181,7 @@ window.initFlipOnScroll = function (scope) {
     var vw = window.innerWidth;
     var vh = window.innerHeight;
 
-    gsap.set(targetEl, { borderRadius: '0.5em', zIndex: 1 });
+    gsap.set(targetEl, { zIndex: 1 });
 
     tl = gsap.timeline({
       scrollTrigger: {
@@ -199,7 +199,6 @@ window.initFlipOnScroll = function (scope) {
       left: -startLeft,
       width: vw,
       height: vh,
-      borderRadius: 0,
       zIndex: 100,
       ease: 'none',
     });
