@@ -181,7 +181,7 @@ window.initFlipOnScroll = function (scope) {
     //  - refresh w środku strony (Flip.fit measure'uje fresh przy entry, ScrollTrigger
     //    range jest absolute trigger.top → niezależny od scrollY przy boot)
     var tl = gsap.timeline();
-    tl.add(Flip.fit(target, sentinel, { duration: 1, ease: 'none' }));
+    tl.add(Flip.fit(target, sentinel, { duration: 1, ease: 'none', scale: true }));
 
     var extras = [
       ctx.querySelector('.img-slider__nav'),
