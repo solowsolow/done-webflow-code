@@ -195,8 +195,8 @@ function runEnter(container) {
     }
     var tl = gsap.timeline({
       onComplete: function () {
-        // Revert SplitText (przywróć oryginalny markup tekstu) — autoAlpha:0
-        // już ustawione w timeline synchronously z panel hide (zob. niżej).
+        // Po enter: hide logo + revert SplitText (przywróć oryginalny markup tekstu).
+        if (logo) gsap.set(logo, { autoAlpha: 0 });
         if (window.__transitionSplit) {
           try { window.__transitionSplit.revert(); } catch (e) {}
           window.__transitionSplit = null;
@@ -209,10 +209,6 @@ function runEnter(container) {
     tl.fromTo(panel, { yPercent: -100 }, { yPercent: -200, duration: 1, overwrite: 'auto', immediateRender: false }, 'in');
     tl.fromTo(panelBot, { scaleY: 1 }, { scaleY: 0, duration: 1 }, '<');
     tl.set(panel, { autoAlpha: 0 }, '>');
-    // Logo hide SYNCHRONOUSLY z panel hide — bez tego tekst zostawał widoczny
-    // przez ~0.2s po zniknięciu panelu (gap między koniec lines animation
-    // i onComplete callback).
-    if (logo) tl.set(logo, { autoAlpha: 0 }, '<');
     if (stagger.length) {
       tl.to(stagger, { yPercent: -130, duration: 1.2, ease: 'expo.inOut', stagger: { amount: -0.06 } }, 'in-=0.4');
     }
