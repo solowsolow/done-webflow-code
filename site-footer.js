@@ -20,7 +20,9 @@ gsap.registerPlugin(CustomEase);
 CustomEase.create('osmo', '0.625, 0.05, 0, 1');
 CustomEase.create('main', '0.65, 0.01, 0.05, 0.99');
 gsap.defaults({ ease: 'osmo', duration: 0.6 });
-history.scrollRestoration = 'manual';
+// TEMP 2026-05-07: 'auto' (było 'manual') — pozwala browser zachować scroll przy F5
+// dla testów flip section. Po fixie wrócić do 'manual' (zsynchr. z forceHomeScrollTop).
+history.scrollRestoration = 'auto';
 
 var lenis = null;
 var isNavigating = false;
@@ -252,14 +254,13 @@ window.addEventListener('pageshow', function (e) {
 });
 
 // Home: multi-stage force scroll-to-top.
-// Pojedynczy scrollTo(0,0) w DOMContentLoaded okazał się niewystarczający —
-// Webflow / Lenis / browser scroll restoration mogą restorować scroll PO
-// naszym fix (sequence problem). Force w 5 punktach: pre-Lenis, post-Lenis,
-// rAF, setTimeout 100/500, window.load.
+// TEMP DISABLED 2026-05-07 dla testów flip section refresh-w-środku — user nie
+// może testować gdy F5 zawsze resetuje scroll do 0. Odkomentować po fixie.
 function forceHomeScrollTop() {
-  if (location.pathname !== '/' && location.pathname !== '') return;
-  window.scrollTo(0, 0);
-  if (window.lenis) window.lenis.scrollTo(0, { immediate: true, force: true });
+  return; // TEMP — pozwala browser scroll restoration działać normalnie
+  // if (location.pathname !== '/' && location.pathname !== '') return;
+  // window.scrollTo(0, 0);
+  // if (window.lenis) window.lenis.scrollTo(0, { immediate: true, force: true });
 }
 
 // Boot
