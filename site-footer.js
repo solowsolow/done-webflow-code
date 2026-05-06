@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .fromTo(menuButtonTexts, { yPercent: 0 }, Object.assign({}, NAV_DEFAULTS, { yPercent: -100, stagger: 0.2 }))
         .fromTo(menuButtonIcon, { rotate: 0 }, Object.assign({}, NAV_DEFAULTS, { rotate: 315 }), '<')
         .fromTo(overlay, { autoAlpha: 0 }, Object.assign({}, NAV_DEFAULTS, { autoAlpha: 1 }), '<')
-        .fromTo(bgPanels, { yPercent: -101 }, Object.assign({}, NAV_DEFAULTS, { yPercent: 0, stagger: 0.12, duration: 1 }), '<')
+        .fromTo(bgPanels, { yPercent: -101 }, Object.assign({}, NAV_DEFAULTS, { yPercent: 0, stagger: 0.12, duration: 1.5 }), '<')
         .fromTo(menuLinks, { yPercent: 180, rotate: 10 }, Object.assign({}, NAV_DEFAULTS, { yPercent: 0, rotate: 0, stagger: 0.05 }), '<+=0.35')
         .fromTo(fadeTargets, { autoAlpha: 0 }, Object.assign({}, NAV_DEFAULTS, { autoAlpha: 1 }), '<+=0.2');
 
