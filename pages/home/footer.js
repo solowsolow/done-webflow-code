@@ -143,106 +143,81 @@
 })();
 
 window.initFlipOnScroll = function (scope) {
-  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined' || typeof Flip === 'undefined') return;
   var ctx = scope || document;
 
-  var wrappers = Array.from(ctx.querySelectorAll("[data-flip-element='wrapper']"));
-  var targetEl = ctx.querySelector("[data-flip-element='target']");
-  var triggerEl = ctx.querySelector("[data-flip-element='trigger']");
-  if (!wrappers.length || !targetEl || !triggerEl) return;
-  if (triggerEl.dataset.flipReady) return;
-  triggerEl.dataset.flipReady = '1';
+  var target = ctx.querySelector("[data-flip-element='target']");
+  var trigger = ctx.querySelector("[data-flip-element='trigger']");
+  if (!target || !trigger) return;
+  if (trigger.dataset.flipReady) return;
+  trigger.dataset.flipReady = '1';
 
-  var stickyHeader =
-    ctx.querySelector('.scaling-element-header') ||
-    document.querySelector('.scaling-element-header');
-  if (!stickyHeader) return;
+  // Viewport sentinel — invisible fixed element 100vw × 100vh, destination dla Flip.fit.
+  // Niezależny od sticky state, IX3 transform, scroll position. Pojedyncze źródło prawdy
+  // dla "fullscreen viewport" — Flip.fit measures je przy starcie tween (= entry scrub).
+  var sentinel = document.querySelector('[data-flip-viewport-sentinel]');
+  if (!sentinel) {
+    sentinel = document.createElement('div');
+    sentinel.setAttribute('data-flip-viewport-sentinel', '');
+    sentinel.style.cssText = 'position:fixed;inset:0;pointer-events:none;visibility:hidden;z-index:-1;';
+    document.body.appendChild(sentinel);
+  }
 
-  var tl;
-  var resizeTimer;
   var ST_ID = 'flip-on-scroll';
 
-  function buildTimeline() {
-    if (tl) tl.kill();
-    // Kill only own ST — Lumos ColorChanger targets the same trigger element
-    // (`.section_home-project` has data-animate-theme-to="brand") and without
-    // id-based filtering it would kill our flip ST.
+  function build() {
+    // Kill only own ST — Lumos ColorChanger targets ten sam .section_home-project
+    // (data-animate-theme-to="brand"); bez id-filter killowałby nasz flip ST.
     ScrollTrigger.getAll()
       .filter(function (st) { return st.vars.id === ST_ID; })
       .forEach(function (st) { st.kill(); });
-    gsap.set(targetEl, { clearProps: 'all' });
+    target.removeAttribute('style');
+    gsap.set(target, { zIndex: 1 });
 
-    var stickyOff = stickyHeader.offsetTop;
-    var shRect = stickyHeader.getBoundingClientRect();
-    var w0Rect = wrappers[0].getBoundingClientRect();
-    var startTop = Math.round(w0Rect.top - shRect.top);
-    var startLeft = Math.round(w0Rect.left - shRect.left);
+    // Single timeline + single Flip.fit. Flip.fit measures source bbox AT TWEEN START
+    // (gdy ScrollTrigger entry → scrub starts), nie przy create. To rozwiązuje:
+    //  - IX3 small-box scaleX timing (wrapper measured live w jego post-collapse state)
+    //  - sticky-pinned wrapper math drift (sentinel jest fixed, niezależny od sticky)
+    //  - refresh w środku strony (Flip.fit measure'uje fresh przy entry, ScrollTrigger
+    //    range jest absolute trigger.top → niezależny od scrollY przy boot)
+    var tl = gsap.timeline();
+    tl.add(Flip.fit(target, sentinel, { duration: 1, ease: 'none' }));
 
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-
-    gsap.set(targetEl, { zIndex: 1 });
-
-    tl = gsap.timeline({
-      scrollTrigger: {
-        id: ST_ID,
-        trigger: triggerEl,
-        start: 'top -' + stickyOff + 'px',
-        endTrigger: triggerEl,
-        end: 'bottom 120%',
-        scrub: 0,
-      },
-    });
-
-    tl.to(targetEl, {
-      top: -startTop,
-      left: -startLeft,
-      width: vw,
-      height: vh,
-      zIndex: 100,
-      ease: 'none',
-    });
-
-    var extraEls = [];
-    var navEl = ctx.querySelector('.img-slider__nav');
-    if (navEl) extraEls.push(navEl);
-    var btnWrap = ctx.querySelector('.scaling-video__button-wrap');
-    if (btnWrap) extraEls.push(btnWrap);
-
-    if (extraEls.length) {
-      tl.fromTo(extraEls, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
+    var extras = [
+      ctx.querySelector('.img-slider__nav'),
+      ctx.querySelector('.scaling-video__button-wrap'),
+    ].filter(Boolean);
+    if (extras.length) {
+      tl.fromTo(extras, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
     }
-  }
 
-  buildTimeline();
-
-  // Webflow IX3 robi scroll-driven scaleX na .scaling-element__small-box (rośnie
-  // 0 → 82px między scroll 600 → 1142). Parent ma flex-center, więc gdy small-box
-  // rośnie, wrapper.viewport.left przesuwa się o ~41px w lewo (= half of new width).
-  // Math liczony w buildTimeline() przy scrollY=0 (IX3 collapsed) używa stale
-  // wartości — target ląduje 41px za daleko w lewo z białym marginesem po prawej.
-  //
-  // Fix: rebuild gdy section.top dotyka viewport.top (= scroll = stickyHeader.offsetTop).
-  // W tym momencie IX3 expansion jest dokończona (verified diagnostyką w Chrome:
-  // wrapper.width = 82 dokładnie przy scroll = 1142). Math liczy się na faktycznym
-  // expanded layoucie. Następuje to dokładnie w momencie sticky activation /
-  // animation start — rebuild kills i recreates ScrollTrigger z poprawnymi wartościami.
-  if (!triggerEl.dataset.flipRebuildBound) {
-    triggerEl.dataset.flipRebuildBound = '1';
     ScrollTrigger.create({
-      id: ST_ID + '-rebuild',
-      trigger: triggerEl,
+      id: ST_ID,
+      trigger: trigger,
       start: 'top top',
-      once: true,
-      onEnter: function () { buildTimeline(); },
+      endTrigger: trigger,
+      end: 'bottom 120%',
+      scrub: 0,
+      animation: tl,
     });
   }
 
+  build();
+
+  // Resize → pełen rebuild. Flip.fit captureuje source bbox przy create timeline
+  // (chyba że tween jeszcze nie startował — wtedy at-tween-start). Bezpieczniej kill
+  // ScrollTrigger + clear inline + re-init żeby measurements były fresh dla nowego viewport.
   if (!window.__flipOnScrollResizeBound) {
     window.__flipOnScrollResizeBound = true;
+    var resizeTimer;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(buildTimeline, 100);
+      resizeTimer = setTimeout(function () {
+        target.removeAttribute('style');
+        delete trigger.dataset.flipReady;
+        trigger.dataset.flipReady = '1';
+        build();
+      }, 250);
     });
   }
 };
