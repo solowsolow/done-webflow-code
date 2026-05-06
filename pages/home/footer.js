@@ -227,39 +227,57 @@ window.initFlipOnScroll = function (scope) {
     }
   }
 
-  // KEY FIX: Refresh-w-środku-strony detection. Standardowy 'top top' rebuild
-  // ScrollTrigger nie odpala onEnter jeśli scrollY już za start przy create
-  // (= reload w środku). W tym przypadku initial buildTimeline mierzy wrapper
-  // już w post-IX3-collapse stanie (106×106) → math poprawny od razu.
-  // Bez tego warunku rebuild trigger byłby tworzony, nigdy nie odpaliłby, a stary
-  // ScrollTrigger zostawałby z dryfowanym start (= scrollY zamiast trigger.absoluteTop).
+  // KEY FIX: Defer initial buildTimeline aż do sticky activation, kiedy IX3 small-box
+  // jest już w post-collapse state (scaleX:1, identity matrix) → wrapper.bbox jest
+  // measurable w final size/position. Bez tego initial build przy scrollY=0 mierzy
+  // wrapper jako pre-collapse (449×449/380×380 z scaleX:3), tween destination values
+  // pozostają stale i rebuild trigger nie aktualizuje ich w real page load context.
+  //
+  // Dwie ścieżki:
+  //   - scrollY już za triggerAbsTop (refresh-w-środku) → buildTimeline od razu
+  //   - scrollY przed triggerAbsTop (top load) → defer trigger, build przy sticky activate
   var triggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
 
-  buildTimeline();
-
-  if (window.scrollY < triggerAbsTop) {
-    // Fresh top load: initial build z stale 449×449 wrapper (pre-collapse),
-    // rebuild przy 'top top' gdy IX3 collapse complete → poprawne wartości.
-    if (!triggerEl.dataset.flipRebuildBound) {
-      triggerEl.dataset.flipRebuildBound = '1';
-      ScrollTrigger.create({
-        id: ST_ID + '-rebuild',
-        trigger: triggerEl,
-        start: 'top top',
-        once: true,
-        onEnter: buildTimeline,
-      });
-    }
+  if (window.scrollY >= triggerAbsTop) {
+    // Refresh-w-środku: wrapper już post-collapse. Build z poprawnymi values.
+    buildTimeline();
+  } else {
+    // Top load: NIE buduj initial timeline z stale measurements. Czekaj aż user
+    // doscrolluje do sticky activation, wtedy buildTimeline mierzy post-collapse.
+    // Defer trigger sam się usuwa po fire (once: true).
+    ScrollTrigger.create({
+      id: ST_ID + '-defer',
+      trigger: triggerEl,
+      start: 'top top',
+      once: true,
+      onEnter: buildTimeline,
+    });
   }
-  // else: refresh-w-środku — initial buildTimeline już z post-collapse wartościami,
-  // rebuild trigger niepotrzebny.
 
-  // Resize: rebuild. 100ms debounce.
+  // Resize: clear + rebuild (jeśli scrollY pozwala) lub re-defer (jeśli przed trigger).
   if (!window.__flipOnScrollResizeBound) {
     window.__flipOnScrollResizeBound = true;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(buildTimeline, 100);
+      resizeTimer = setTimeout(function () {
+        gsap.set(targetEl, { clearProps: 'all' });
+        var freshTriggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
+        if (window.scrollY >= freshTriggerAbsTop) {
+          buildTimeline();
+        } else {
+          // Re-defer: kill old defer, create new (with fresh trigger position)
+          ScrollTrigger.getAll()
+            .filter(function (st) { return st.vars.id === ST_ID + '-defer'; })
+            .forEach(function (st) { st.kill(); });
+          ScrollTrigger.create({
+            id: ST_ID + '-defer',
+            trigger: triggerEl,
+            start: 'top top',
+            once: true,
+            onEnter: buildTimeline,
+          });
+        }
+      }, 100);
     });
   }
 };
