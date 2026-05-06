@@ -160,6 +160,7 @@ window.initFlipOnScroll = function (scope) {
 
   var tl;
   var resizeTimer;
+  var scrollListener;
   var ST_ID = 'flip-on-scroll';
 
   function buildTimeline() {
@@ -170,6 +171,11 @@ window.initFlipOnScroll = function (scope) {
     ScrollTrigger.getAll()
       .filter(function (st) { return st.vars.id === ST_ID; })
       .forEach(function (st) { st.kill(); });
+    // Remove old scroll listener
+    if (scrollListener) {
+      window.removeEventListener('scroll', scrollListener);
+      scrollListener = null;
+    }
     gsap.set(targetEl, { clearProps: 'all' });
 
     var stickyOff = stickyHeader.offsetTop;
@@ -181,34 +187,22 @@ window.initFlipOnScroll = function (scope) {
     var vw = window.innerWidth;
     var vh = window.innerHeight;
 
-    // KEY: numeric ScrollTrigger start/end based on trigger absolute position.
-    // String-based ('top top', 'bottom 120%') liczone przy create z trigger.bbox + scrollY,
-    // ale w sticky-pinned mid-scroll context daje drift: start = current scrollY zamiast
-    // trigger.absoluteTop (empirycznie 1215 → 1500/1863). Numeric values są as-is, niezależnie
-    // od kiedy/gdzie ScrollTrigger jest tworzony.
+    // Numeric scroll positions for animation range
     var triggerRect = triggerEl.getBoundingClientRect();
     var triggerAbsTop = triggerRect.top + window.scrollY;
     var triggerAbsBottom = triggerAbsTop + triggerRect.height;
-    // Equiv 'top -stickyOff' = trigger.top dotyka viewport.top - stickyOff = scroll = absTop + stickyOff
     var stStart = triggerAbsTop + stickyOff;
-    // Equiv 'bottom 120%' = trigger.bottom dotyka point at 120% viewport.h from top
-    // = scroll = absBottom - 1.2*vh
     var stEnd = triggerAbsBottom - vh * 1.2;
 
     gsap.set(targetEl, { zIndex: 1 });
 
-    tl = gsap.timeline({
-      scrollTrigger: {
-        id: ST_ID,
-        // BEZ trigger: — z trigger ScrollTrigger drift'uje numeric start do current
-        // scrollY przy create w mid-scroll context (range może spaść do <50px → animacja
-        // wygląda jak instant jump). Bez trigger ST używa pure numeric scroll positions
-        // niezależnie od kontekstu.
-        start: stStart,
-        end: stEnd,
-        scrub: 0,
-      },
-    });
+    // Paused timeline — progress kontrolowany manualnie przez scroll listener.
+    // Powód: GSAP ScrollTrigger CLAMPS numeric start do current scrollY przy create
+    // w mid-scroll context (refresh-w-środku → ST.start = scrollY zamiast triggerAbsTop,
+    // range spada do kilku px → animacja wygląda jak instant). Manual scroll listener
+    // bypasses clamping → progress jest zawsze (scrollY - stStart) / (stEnd - stStart),
+    // niezależnie kiedy timeline było stworzone.
+    tl = gsap.timeline({ paused: true });
 
     tl.to(targetEl, {
       top: -startTop,
@@ -217,6 +211,7 @@ window.initFlipOnScroll = function (scope) {
       height: vh,
       zIndex: 100,
       ease: 'none',
+      duration: 1,
     });
 
     var extraEls = [];
@@ -228,6 +223,18 @@ window.initFlipOnScroll = function (scope) {
     if (extraEls.length) {
       tl.fromTo(extraEls, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
     }
+
+    // Manual scroll-driven progress
+    function updateProgress() {
+      var range = stEnd - stStart;
+      if (range <= 0) return;
+      var p = Math.max(0, Math.min(1, (window.scrollY - stStart) / range));
+      tl.progress(p);
+    }
+    scrollListener = updateProgress;
+    window.addEventListener('scroll', scrollListener, { passive: true });
+    // Initial progress sync (refresh-w-środku scenario)
+    updateProgress();
   }
 
   // KEY FIX: Defer initial buildTimeline aż do sticky activation, kiedy IX3 small-box
