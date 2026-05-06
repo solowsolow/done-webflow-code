@@ -201,14 +201,12 @@ document.addEventListener('click', function (e) {
 });
 
 window.addEventListener('popstate', function (e) {
-  // Browser back button na home → zawsze location.reload() (fresh state, intro
-  // odpala od początku, scroll resetuje na 0). Custom navigate via runLeave +
-  // location.replace mogłoby zachować bfcache state lub przejść przez stale
-  // ScrollTriggers — reload daje pewność świeżego startu.
-  if (location.pathname === '/' || location.pathname === '') {
-    location.reload();
-    return;
-  }
+  // TEMP DISABLED 2026-05-07 dla testów flip section — user nie może testować
+  // refresh-w-środku gdy home zawsze startuje od top. Odkomentować po fixie flip.
+  // if (location.pathname === '/' || location.pathname === '') {
+  //   location.reload();
+  //   return;
+  // }
   navigate((e.state && e.state.url) || location.href, true);
 });
 
@@ -216,16 +214,11 @@ window.addEventListener('popstate', function (e) {
 window.addEventListener('pageshow', function (e) {
   if (!e.persisted) return;
 
-  // Home page MUSI startować zawsze świeżo. Bfcache (Safari/Chrome back-forward
-  // cache) zachowuje JS state z poprzedniego momentu — intro Webflow IX2/IX3
-  // już zagrało, ScrollTriggers są w stale state, scroll position zachowany.
-  // User wraca na home → widzi "śpiącą" stronę zamiast fresh intro.
-  // Fix: force reload na home jeśli z bfcache. Inne podstrony zostają w bfcache
-  // (lepszy UX nawigacji wstecz — szybkie przejście bez re-fetch).
-  if (location.pathname === '/' || location.pathname === '') {
-    location.reload();
-    return;
-  }
+  // TEMP DISABLED 2026-05-07 dla testów flip section. Odkomentować po fixie.
+  // if (location.pathname === '/' || location.pathname === '') {
+  //   location.reload();
+  //   return;
+  // }
 
   isNavigating = false;
 
