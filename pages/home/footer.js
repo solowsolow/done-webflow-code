@@ -260,8 +260,24 @@ window.initFlipOnScroll = function (scope) {
   var triggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
 
   if (window.scrollY >= triggerAbsTop) {
-    // Refresh-w-środku: wrapper już post-collapse. Build z poprawnymi values.
-    buildTimeline();
+    // Refresh-w-środku: BUT przy boot strony Lenis może nie być jeszcze zsynchronizowany,
+    // sticky może nie być jeszcze pinned, IX3 small-box może być w pre-collapse state
+    // — measurements wracają stale values (jakby scrollY=0). Defer + retry until sticky
+    // is actually pinned (sticky.bbox.top close to 0 = pinned).
+    var attempts = 0;
+    var maxAttempts = 20; // 20 × 100ms = 2s max wait
+    function tryBuild() {
+      attempts++;
+      var shCheck = stickyHeader.getBoundingClientRect();
+      // Sticky should be pinned (top close to 0) when scrollY > triggerAbsTop.
+      // If not pinned yet, Lenis/IX3 not settled — retry.
+      if (shCheck.top > 50 && attempts < maxAttempts) {
+        setTimeout(tryBuild, 100);
+        return;
+      }
+      buildTimeline();
+    }
+    tryBuild();
   } else {
     // Top load: NIE buduj initial timeline z stale measurements. Czekaj aż user
     // doscrolluje do sticky activation, wtedy buildTimeline mierzy post-collapse.
