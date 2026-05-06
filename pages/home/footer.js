@@ -178,7 +178,11 @@ window.initFlipOnScroll = function (scope) {
     }
     gsap.set(targetEl, { clearProps: 'all' });
 
-    var stickyOff = stickyHeader.offsetTop;
+    // KEY: stickyOff = 0 hardcoded. stickyHeader jest pierwszym dzieckiem section
+    // (offset 0). stickyHeader.offsetTop ZAWODNE w mid-scroll context — Chrome zwraca
+    // pinned distance (np. 560px gdy sticky pinned przez 560px scrolla) zamiast
+    // natural offset (0). Skutkowało to range = stEnd - stStart = 16px (animacja
+    // wyglądała jak instant jump).
     var shRect = stickyHeader.getBoundingClientRect();
     var w0Rect = wrappers[0].getBoundingClientRect();
     var startTop = Math.round(w0Rect.top - shRect.top);
@@ -191,7 +195,7 @@ window.initFlipOnScroll = function (scope) {
     var triggerRect = triggerEl.getBoundingClientRect();
     var triggerAbsTop = triggerRect.top + window.scrollY;
     var triggerAbsBottom = triggerAbsTop + triggerRect.height;
-    var stStart = triggerAbsTop + stickyOff;
+    var stStart = triggerAbsTop;
     var stEnd = triggerAbsBottom - vh * 1.2;
 
     gsap.set(targetEl, { zIndex: 1 });
