@@ -191,10 +191,6 @@ window.initFlipOnScroll = function (scope) {
         endTrigger: triggerEl,
         end: 'bottom 120%',
         scrub: 0,
-        // KEY FIX #1: Wymusza recompute start/end na każdym refresh z aktualnej geometrii.
-        // Bez tego ScrollTrigger.start dryfował z 1215 do current scrollY przy rebuild
-        // w sticky-pinned context (empirycznie potwierdzone Chrome DevTools 2026-05-06).
-        invalidateOnRefresh: true,
       },
     });
 
@@ -218,28 +214,19 @@ window.initFlipOnScroll = function (scope) {
     }
   }
 
-  function buildAndRefresh() {
-    buildTimeline();
-    // KEY FIX #2: ScrollTrigger.refresh() po build wymusza re-evaluation start/end
-    // na current geometry. Konieczne po rebuild w sticky-pinned context.
-    if (typeof ScrollTrigger.refresh === 'function') ScrollTrigger.refresh();
-  }
-
-  // KEY FIX #3: Refresh-w-środku-strony detection. Standardowy 'top top' rebuild
+  // KEY FIX: Refresh-w-środku-strony detection. Standardowy 'top top' rebuild
   // ScrollTrigger nie odpala onEnter jeśli scrollY już za start przy create
-  // (= reload w środku). W tym przypadku math jest already poprawny (wrapper jest
-  // post-IX3-collapse), ale ScrollTrigger.start może być wrong → wymuszamy refresh.
-  // Triggerowy abs.top = bbox.top (relative to viewport) + window.scrollY.
+  // (= reload w środku). W tym przypadku initial buildTimeline mierzy wrapper
+  // już w post-IX3-collapse stanie (106×106) → math poprawny od razu.
+  // Bez tego warunku rebuild trigger byłby tworzony, nigdy nie odpaliłby, a stary
+  // ScrollTrigger zostawałby z dryfowanym start (= scrollY zamiast trigger.absoluteTop).
   var triggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
 
-  if (window.scrollY >= triggerAbsTop) {
-    // Refresh w środku: math poprawny, wymuszamy build + refresh from go.
-    buildAndRefresh();
-  } else {
-    // Fresh top load: build initial (z stale 449×449 wrapper), potem rebuild
-    // przy 'top top' (gdy IX3 collapse complete) z poprawnymi wartościami.
-    buildTimeline();
+  buildTimeline();
 
+  if (window.scrollY < triggerAbsTop) {
+    // Fresh top load: initial build z stale 449×449 wrapper (pre-collapse),
+    // rebuild przy 'top top' gdy IX3 collapse complete → poprawne wartości.
     if (!triggerEl.dataset.flipRebuildBound) {
       triggerEl.dataset.flipRebuildBound = '1';
       ScrollTrigger.create({
@@ -247,17 +234,19 @@ window.initFlipOnScroll = function (scope) {
         trigger: triggerEl,
         start: 'top top',
         once: true,
-        onEnter: buildAndRefresh,
+        onEnter: buildTimeline,
       });
     }
   }
+  // else: refresh-w-środku — initial buildTimeline już z post-collapse wartościami,
+  // rebuild trigger niepotrzebny.
 
-  // Resize: rebuild + refresh. 100ms debounce.
+  // Resize: rebuild. 100ms debounce.
   if (!window.__flipOnScrollResizeBound) {
     window.__flipOnScrollResizeBound = true;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(buildAndRefresh, 100);
+      resizeTimer = setTimeout(buildTimeline, 100);
     });
   }
 };
