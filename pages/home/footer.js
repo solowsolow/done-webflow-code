@@ -200,7 +200,10 @@ window.initFlipOnScroll = function (scope) {
     tl = gsap.timeline({
       scrollTrigger: {
         id: ST_ID,
-        trigger: triggerEl,
+        // BEZ trigger: — z trigger ScrollTrigger drift'uje numeric start do current
+        // scrollY przy create w mid-scroll context (range może spaść do <50px → animacja
+        // wygląda jak instant jump). Bez trigger ST używa pure numeric scroll positions
+        // niezależnie od kontekstu.
         start: stStart,
         end: stEnd,
         scrub: 0,
