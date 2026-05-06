@@ -191,8 +191,9 @@ window.initFlipOnScroll = function (scope) {
     var triggerAbsBottom = triggerAbsTop + triggerRect.height;
     // Equiv 'top -stickyOff' = trigger.top dotyka viewport.top - stickyOff = scroll = absTop + stickyOff
     var stStart = triggerAbsTop + stickyOff;
-    // Equiv 'bottom 120%' = trigger.bottom dotyka viewport.bottom + 20% (past) = scroll = absBottom - 0.8*vh
-    var stEnd = triggerAbsBottom - vh * 0.8;
+    // Equiv 'bottom 120%' = trigger.bottom dotyka point at 120% viewport.h from top
+    // = scroll = absBottom - 1.2*vh
+    var stEnd = triggerAbsBottom - vh * 1.2;
 
     gsap.set(targetEl, { zIndex: 1 });
 
