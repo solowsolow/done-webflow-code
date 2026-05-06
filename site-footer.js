@@ -419,6 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var tl = gsap.timeline();
     var NAV_DEFAULTS = { ease: 'main', duration: 0.8 };
+    var NAV_CLOSE_DEFAULTS = { ease: 'main', duration: 1.3 };
 
     var openNav = function () {
       navWrap.setAttribute('data-nav-state', 'open');
@@ -451,10 +452,10 @@ document.addEventListener('DOMContentLoaded', function () {
         el.classList.remove('stop-scroll');
       });
       tl.clear()
-        .to(overlay, Object.assign({}, NAV_DEFAULTS, { autoAlpha: 0 }))
-        .to(menu, Object.assign({}, NAV_DEFAULTS, { yPercent: -120 }), '<')
-        .to(menuButtonTexts, Object.assign({}, NAV_DEFAULTS, { yPercent: 0 }), '<')
-        .to(menuButtonIcon, Object.assign({}, NAV_DEFAULTS, { rotate: 0 }), '<')
+        .to(overlay, Object.assign({}, NAV_CLOSE_DEFAULTS, { autoAlpha: 0 }))
+        .to(menu, Object.assign({}, NAV_CLOSE_DEFAULTS, { yPercent: -120 }), '<')
+        .to(menuButtonTexts, Object.assign({}, NAV_CLOSE_DEFAULTS, { yPercent: 0 }), '<')
+        .to(menuButtonIcon, Object.assign({}, NAV_CLOSE_DEFAULTS, { rotate: 0 }), '<')
         .set(navWrap, { display: 'none' });
     };
 
