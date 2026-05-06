@@ -143,81 +143,121 @@
 })();
 
 window.initFlipOnScroll = function (scope) {
-  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined' || typeof Flip === 'undefined') return;
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
   var ctx = scope || document;
 
-  var target = ctx.querySelector("[data-flip-element='target']");
-  var trigger = ctx.querySelector("[data-flip-element='trigger']");
-  if (!target || !trigger) return;
-  if (trigger.dataset.flipReady) return;
-  trigger.dataset.flipReady = '1';
+  var wrappers = Array.from(ctx.querySelectorAll("[data-flip-element='wrapper']"));
+  var targetEl = ctx.querySelector("[data-flip-element='target']");
+  var triggerEl = ctx.querySelector("[data-flip-element='trigger']");
+  if (!wrappers.length || !targetEl || !triggerEl) return;
+  if (triggerEl.dataset.flipReady) return;
+  triggerEl.dataset.flipReady = '1';
 
-  // Viewport sentinel — invisible fixed element 100vw × 100vh, destination dla Flip.fit.
-  // Niezależny od sticky state, IX3 transform, scroll position. Pojedyncze źródło prawdy
-  // dla "fullscreen viewport" — Flip.fit measures je przy starcie tween (= entry scrub).
-  var sentinel = document.querySelector('[data-flip-viewport-sentinel]');
-  if (!sentinel) {
-    sentinel = document.createElement('div');
-    sentinel.setAttribute('data-flip-viewport-sentinel', '');
-    sentinel.style.cssText = 'position:fixed;inset:0;pointer-events:none;visibility:hidden;z-index:-1;';
-    document.body.appendChild(sentinel);
-  }
+  var stickyHeader =
+    ctx.querySelector('.scaling-element-header') ||
+    document.querySelector('.scaling-element-header');
+  if (!stickyHeader) return;
 
+  var tl;
+  var resizeTimer;
   var ST_ID = 'flip-on-scroll';
 
-  function build() {
-    // Kill only own ST — Lumos ColorChanger targets ten sam .section_home-project
-    // (data-animate-theme-to="brand"); bez id-filter killowałby nasz flip ST.
+  function buildTimeline() {
+    if (tl) tl.kill();
+    // Kill only own ST — Lumos ColorChanger targets the same trigger element
+    // (`.section_home-project` has data-animate-theme-to="brand") and without
+    // id-based filtering it would kill our flip ST.
     ScrollTrigger.getAll()
       .filter(function (st) { return st.vars.id === ST_ID; })
       .forEach(function (st) { st.kill(); });
-    target.removeAttribute('style');
-    gsap.set(target, { zIndex: 1 });
+    gsap.set(targetEl, { clearProps: 'all' });
 
-    // Single timeline + single Flip.fit. Flip.fit measures source bbox AT TWEEN START
-    // (gdy ScrollTrigger entry → scrub starts), nie przy create. To rozwiązuje:
-    //  - IX3 small-box scaleX timing (wrapper measured live w jego post-collapse state)
-    //  - sticky-pinned wrapper math drift (sentinel jest fixed, niezależny od sticky)
-    //  - refresh w środku strony (Flip.fit measure'uje fresh przy entry, ScrollTrigger
-    //    range jest absolute trigger.top → niezależny od scrollY przy boot)
-    var tl = gsap.timeline();
-    tl.add(Flip.fit(target, sentinel, { duration: 1, ease: 'none', scale: true }));
+    var stickyOff = stickyHeader.offsetTop;
+    var shRect = stickyHeader.getBoundingClientRect();
+    var w0Rect = wrappers[0].getBoundingClientRect();
+    var startTop = Math.round(w0Rect.top - shRect.top);
+    var startLeft = Math.round(w0Rect.left - shRect.left);
 
-    var extras = [
-      ctx.querySelector('.img-slider__nav'),
-      ctx.querySelector('.scaling-video__button-wrap'),
-    ].filter(Boolean);
-    if (extras.length) {
-      tl.fromTo(extras, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
-    }
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
 
-    ScrollTrigger.create({
-      id: ST_ID,
-      trigger: trigger,
-      start: 'top top',
-      endTrigger: trigger,
-      end: 'bottom 120%',
-      scrub: 0,
-      animation: tl,
+    gsap.set(targetEl, { zIndex: 1 });
+
+    tl = gsap.timeline({
+      scrollTrigger: {
+        id: ST_ID,
+        trigger: triggerEl,
+        start: 'top -' + stickyOff + 'px',
+        endTrigger: triggerEl,
+        end: 'bottom 120%',
+        scrub: 0,
+        // KEY FIX #1: Wymusza recompute start/end na każdym refresh z aktualnej geometrii.
+        // Bez tego ScrollTrigger.start dryfował z 1215 do current scrollY przy rebuild
+        // w sticky-pinned context (empirycznie potwierdzone Chrome DevTools 2026-05-06).
+        invalidateOnRefresh: true,
+      },
     });
+
+    tl.to(targetEl, {
+      top: -startTop,
+      left: -startLeft,
+      width: vw,
+      height: vh,
+      zIndex: 100,
+      ease: 'none',
+    });
+
+    var extraEls = [];
+    var navEl = ctx.querySelector('.img-slider__nav');
+    if (navEl) extraEls.push(navEl);
+    var btnWrap = ctx.querySelector('.scaling-video__button-wrap');
+    if (btnWrap) extraEls.push(btnWrap);
+
+    if (extraEls.length) {
+      tl.fromTo(extraEls, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
+    }
   }
 
-  build();
+  function buildAndRefresh() {
+    buildTimeline();
+    // KEY FIX #2: ScrollTrigger.refresh() po build wymusza re-evaluation start/end
+    // na current geometry. Konieczne po rebuild w sticky-pinned context.
+    if (typeof ScrollTrigger.refresh === 'function') ScrollTrigger.refresh();
+  }
 
-  // Resize → pełen rebuild. Flip.fit captureuje source bbox przy create timeline
-  // (chyba że tween jeszcze nie startował — wtedy at-tween-start). Bezpieczniej kill
-  // ScrollTrigger + clear inline + re-init żeby measurements były fresh dla nowego viewport.
+  // KEY FIX #3: Refresh-w-środku-strony detection. Standardowy 'top top' rebuild
+  // ScrollTrigger nie odpala onEnter jeśli scrollY już za start przy create
+  // (= reload w środku). W tym przypadku math jest already poprawny (wrapper jest
+  // post-IX3-collapse), ale ScrollTrigger.start może być wrong → wymuszamy refresh.
+  // Triggerowy abs.top = bbox.top (relative to viewport) + window.scrollY.
+  var triggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
+
+  if (window.scrollY >= triggerAbsTop) {
+    // Refresh w środku: math poprawny, wymuszamy build + refresh from go.
+    buildAndRefresh();
+  } else {
+    // Fresh top load: build initial (z stale 449×449 wrapper), potem rebuild
+    // przy 'top top' (gdy IX3 collapse complete) z poprawnymi wartościami.
+    buildTimeline();
+
+    if (!triggerEl.dataset.flipRebuildBound) {
+      triggerEl.dataset.flipRebuildBound = '1';
+      ScrollTrigger.create({
+        id: ST_ID + '-rebuild',
+        trigger: triggerEl,
+        start: 'top top',
+        once: true,
+        onEnter: buildAndRefresh,
+      });
+    }
+  }
+
+  // Resize: rebuild + refresh. 100ms debounce.
   if (!window.__flipOnScrollResizeBound) {
     window.__flipOnScrollResizeBound = true;
-    var resizeTimer;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        target.removeAttribute('style');
-        delete trigger.dataset.flipReady;
-        trigger.dataset.flipReady = '1';
-        build();
-      }, 250);
+      resizeTimer = setTimeout(buildAndRefresh, 100);
     });
   }
 };
