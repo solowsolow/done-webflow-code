@@ -181,15 +181,27 @@ window.initFlipOnScroll = function (scope) {
     var vw = window.innerWidth;
     var vh = window.innerHeight;
 
+    // KEY: numeric ScrollTrigger start/end based on trigger absolute position.
+    // String-based ('top top', 'bottom 120%') liczone przy create z trigger.bbox + scrollY,
+    // ale w sticky-pinned mid-scroll context daje drift: start = current scrollY zamiast
+    // trigger.absoluteTop (empirycznie 1215 → 1500/1863). Numeric values są as-is, niezależnie
+    // od kiedy/gdzie ScrollTrigger jest tworzony.
+    var triggerRect = triggerEl.getBoundingClientRect();
+    var triggerAbsTop = triggerRect.top + window.scrollY;
+    var triggerAbsBottom = triggerAbsTop + triggerRect.height;
+    // Equiv 'top -stickyOff' = trigger.top dotyka viewport.top - stickyOff = scroll = absTop + stickyOff
+    var stStart = triggerAbsTop + stickyOff;
+    // Equiv 'bottom 120%' = trigger.bottom dotyka viewport.bottom + 20% (past) = scroll = absBottom - 0.8*vh
+    var stEnd = triggerAbsBottom - vh * 0.8;
+
     gsap.set(targetEl, { zIndex: 1 });
 
     tl = gsap.timeline({
       scrollTrigger: {
         id: ST_ID,
         trigger: triggerEl,
-        start: 'top -' + stickyOff + 'px',
-        endTrigger: triggerEl,
-        end: 'bottom 120%',
+        start: stStart,
+        end: stEnd,
         scrub: 0,
       },
     });
