@@ -160,7 +160,7 @@ window.initFlipOnScroll = function (scope) {
 
   var tl;
   var resizeTimer;
-  var scrollListener;
+  var tickerFn;
   var ST_ID = 'flip-on-scroll';
 
   function buildTimeline() {
@@ -171,10 +171,10 @@ window.initFlipOnScroll = function (scope) {
     ScrollTrigger.getAll()
       .filter(function (st) { return st.vars.id === ST_ID; })
       .forEach(function (st) { st.kill(); });
-    // Remove old scroll listener
-    if (scrollListener) {
-      window.removeEventListener('scroll', scrollListener);
-      scrollListener = null;
+    // Remove old ticker
+    if (tickerFn) {
+      gsap.ticker.remove(tickerFn);
+      tickerFn = null;
     }
     gsap.set(targetEl, { clearProps: 'all' });
 
@@ -224,15 +224,22 @@ window.initFlipOnScroll = function (scope) {
       tl.fromTo(extraEls, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
     }
 
-    // Manual scroll-driven progress
+    // Manual scroll-driven progress via gsap.ticker (rAF poll co frame).
+    // Powód użycia ticker zamiast 'scroll' event: Lenis hijackuje native scroll
+    // (transform na <html>), window.addEventListener('scroll') NIE odpala przy
+    // Lenis-driven scrollu. gsap.ticker działa niezależnie od mechanizmu scrollu.
+    var lastP = -1;
     function updateProgress() {
       var range = stEnd - stStart;
       if (range <= 0) return;
       var p = Math.max(0, Math.min(1, (window.scrollY - stStart) / range));
-      tl.progress(p);
+      if (p !== lastP) {
+        lastP = p;
+        tl.progress(p);
+      }
     }
-    scrollListener = updateProgress;
-    window.addEventListener('scroll', scrollListener, { passive: true });
+    tickerFn = updateProgress;
+    gsap.ticker.add(tickerFn);
     // Initial progress sync (refresh-w-środku scenario)
     updateProgress();
   }
