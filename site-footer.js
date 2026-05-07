@@ -163,13 +163,13 @@ function runEnter(container) {
   });
 }
 
-// Navigation: hard reload under overlay (Webflow IX3 incompatible with SPA DOM-swap)
+// Navigation: runLeave overlay → hard reload → boot handoff (runEnter)
 async function navigate(url, isPopState) {
   if (isNavigating) return;
   isNavigating = true;
   try {
     if (lenis) lenis.stop();
-    var current = document.querySelector('[data-barba="container"]');
+    var current = document.querySelector('main');
     await runLeave(current);
     try { sessionStorage.setItem('__doneInTransition', '1'); } catch (e) {}
     if (isPopState) {
@@ -225,7 +225,7 @@ window.addEventListener('pageshow', function (e) {
   isNavigating = false;
 
   var wrap = document.querySelector('[data-transition-wrap]');
-  var next = document.querySelector('[data-barba="container"]');
+  var next = document.querySelector('main');
   if (!wrap) { if (lenis) lenis.start(); return; }
 
   var panel = wrap.querySelector('[data-transition-panel]');
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initLenis();
   initScrollToAnchorLenis();
   initLenisToggleHandlers();
-  applyTheme(document.querySelector('[data-barba="container"]'));
+  applyTheme(document.querySelector('main'));
 
   // Stage 2: post-Lenis init (Lenis ma swoje internal scroll, sync do 0).
   forceHomeScrollTop();
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
   (function waitForGSAP() {
     if (window.gsap && (!hasScrollTrigger || window.ScrollTrigger)) {
       if (wasInTransition) {
-        var next = document.querySelector('[data-barba="container"]');
+        var next = document.querySelector('main');
         var wrap = document.querySelector('[data-transition-wrap]');
         if (next) gsap.set(next, { autoAlpha: 0 });
         if (wrap) {
