@@ -1056,3 +1056,64 @@ window.initScrollProgressBar = function () {
     },
   });
 };
+
+// -----------------------------------------------------------------------------
+// SITE-WIDE: OSMO Dynamic Text Cursor
+// -----------------------------------------------------------------------------
+// Element [data-cursor] z childem [data-cursor-text-target] (text inside bubble).
+// Hover nad [data-cursor-hover] z atrybutem [data-cursor-text="..."] → cursor
+// dostaje data-cursor="active" (lub "active-edge" gdy bubble wystaje za prawą
+// krawędź viewport) + .cursor-bubble fade in z text. Movement przez gsap.quickTo.
+//
+// Wzorzec window.initXxx dla orchestrator (initCustomAnimations) — bez DOMContentLoaded.
+// Guard data-dynamic-cursor-ready chroni przed double-bind przy re-init (np. resize).
+window.initDynamicTextCursor = function (scope) {
+  if (typeof gsap === 'undefined') return;
+  var ctx = scope || document;
+
+  var cursor = ctx.querySelector('[data-cursor]') || document.querySelector('[data-cursor]');
+  if (!cursor) return;
+  if (cursor.dataset.dynamicCursorReady) return;
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  cursor.dataset.dynamicCursorReady = '1';
+
+  var cursorTextTarget = document.querySelector('[data-cursor-text-target]');
+
+  var mouseX = 0, mouseY = 0;
+  var hasMouseMoved = false;
+
+  var xTo = gsap.quickTo(cursor, 'x', { duration: 0.4, ease: 'power3.out' });
+  var yTo = gsap.quickTo(cursor, 'y', { duration: 0.4, ease: 'power3.out' });
+
+  function updateCursor() {
+    var elFromPoint = document.elementFromPoint(mouseX, mouseY);
+    var hoverItem = elFromPoint && elFromPoint.closest ? elFromPoint.closest('[data-cursor-hover]') : null;
+    var rect = cursor.getBoundingClientRect();
+
+    var isHovering = !!hoverItem;
+    var isEdge = rect.right >= window.innerWidth;
+
+    cursor.setAttribute('data-cursor', isHovering ? (isEdge ? 'active-edge' : 'active') : '');
+
+    if (hoverItem && cursorTextTarget) {
+      var text = hoverItem.getAttribute('data-cursor-text');
+      if (text) cursorTextTarget.textContent = text;
+    }
+  }
+
+  window.addEventListener('mousemove', function (event) {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+    hasMouseMoved = true;
+
+    xTo(mouseX);
+    yTo(mouseY);
+
+    requestAnimationFrame(updateCursor);
+  });
+
+  window.addEventListener('scroll', function () {
+    if (!hasMouseMoved) return;
+    requestAnimationFrame(updateCursor);
+  }, { passive: true });
+};

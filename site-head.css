@@ -369,3 +369,34 @@ html[data-browser-safari] .u-image-wrapper.is-brand-stone-bg-image.is-refraction
 img, video, canvas {
   overflow: clip !important;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   OSMO Dynamic Text Cursor
+   Element [data-cursor] z dzieckiem .cursor-bubble. JS ustawia
+   data-cursor="active" / "active-edge" / "" w zależności od hover
+   nad [data-cursor-hover]. Mobile (hover:none) — cursor hidden.
+────────────────────────────────────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+  [data-cursor] .cursor-bubble {
+    transition:
+      transform 0.4s cubic-bezier(0.625, 0.05, 0, 1),
+      opacity 0.4s cubic-bezier(0.625, 0.05, 0, 1);
+    transform: translateX(0%) scale(0.9) rotate(0.001deg);
+  }
+
+  [data-cursor='active'] .cursor-bubble {
+    opacity: 1;
+    transform: translateX(0%) scale(1) rotate(0.001deg);
+  }
+
+  [data-cursor='active-edge'] .cursor-bubble {
+    opacity: 1;
+    transform: translateX(-100%) scale(1) rotate(0.001deg);
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .cursor {
+    display: none;
+  }
+}
