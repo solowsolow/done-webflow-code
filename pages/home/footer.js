@@ -5,7 +5,7 @@
 //   - initParallaxImageGalleryThumbnails (slideshow z observer)
 //   - initFlipOnScroll (scaling element header flip)
 //   - initLogoGrid (rotujące logos w gridzie)
-//   - initHomeHeroVideoDelay (delayed start hero video po 3s)
+//   - initHomeHeroVideoDelay (delayed start hero video po 6s)
 // =============================================================================
 
 (function () {
