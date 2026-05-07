@@ -158,6 +158,19 @@ window.initFlipOnScroll = function (scope) {
     document.querySelector('.scaling-element-header');
   if (!stickyHeader) return;
 
+  // Extras (slider nav + button wrap) — wjeżdżają z dołu w trakcie flip animacji.
+  // Pre-emptive hide IMMEDIATE (przed pierwszym paint po init) żeby nie były
+  // widoczne w natural CSS state przed odpaleniem buildTimeline (które jest
+  // deferred do sticky activation w top-load path).
+  var extraEls = [];
+  var navEl = ctx.querySelector('.img-slider__nav');
+  if (navEl) extraEls.push(navEl);
+  var btnWrap = ctx.querySelector('.scaling-video__button-wrap');
+  if (btnWrap) extraEls.push(btnWrap);
+  if (extraEls.length) {
+    gsap.set(extraEls, { yPercent: 300, opacity: 0 });
+  }
+
   var tl;
   var resizeTimer;
   var tickerFn;
@@ -218,14 +231,13 @@ window.initFlipOnScroll = function (scope) {
       duration: 1,
     });
 
-    var extraEls = [];
-    var navEl = ctx.querySelector('.img-slider__nav');
-    if (navEl) extraEls.push(navEl);
-    var btnWrap = ctx.querySelector('.scaling-video__button-wrap');
-    if (btnWrap) extraEls.push(btnWrap);
-
+    // extras refs są w outer scope (pre-emptive hide na init).
     if (extraEls.length) {
-      tl.fromTo(extraEls, { yPercent: 300 }, { yPercent: 0, ease: 'power2.out', duration: 0.22 }, 0.38);
+      tl.fromTo(extraEls,
+        { yPercent: 300, opacity: 0 },
+        { yPercent: 0, opacity: 1, ease: 'power2.out', duration: 0.22 },
+        0.38
+      );
     }
 
     // Manual scroll-driven progress via gsap.ticker (rAF poll co frame).
