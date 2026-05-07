@@ -208,7 +208,8 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
    - ASCENDERY/DIAKRYTYKI (powyżej x-height): Ć, Ó, Ż, Ź, Ń, Ś, Ł, akcenty
 ────────────────────────────────────────────────────────────────── */
 .gsap_split_letter,
-.gsap_split_word {
+.gsap_split_word,
+.gsap_split_line {
   display: inline-block;
   overflow: visible;
   padding: 0.3em 0;
@@ -225,7 +226,8 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
 @media not all and (min-resolution: 0.001dpcm) {
   @supports (-webkit-appearance: none) {
     .gsap_split_letter,
-    .gsap_split_word {
+    .gsap_split_word,
+    .gsap_split_line {
       padding: 0.3em 0;
       margin: -0.3em 0;
     }
