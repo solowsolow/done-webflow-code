@@ -357,7 +357,7 @@ window.initLumosColorChanger = function () {
 
   document.querySelectorAll('[data-animate-theme-to]').forEach(function (el, i) {
     var stId = 'lumos-theme-' + i;
-    // kill-by-id (nie kill-by-trigger) — inaczej zabija flip/footer-parallax na tym samym triggerze
+    // kill-by-id (nie kill-by-trigger) — inaczej zabija flip na tym samym triggerze
     ScrollTrigger.getAll()
       .filter(function (st) { return st.vars.id === stId; })
       .forEach(function (st) { st.kill(); });
@@ -467,41 +467,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
-
-// -----------------------------------------------------------------------------
-// SITE-WIDE: footer parallax
-// -----------------------------------------------------------------------------
-window.initFooterParallax = function () {
-  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-  if (window.innerWidth < 768) return;
-
-  document.querySelectorAll('[data-footer-parallax]').forEach(function (el, i) {
-    var stId = 'footer-parallax-' + i;
-    ScrollTrigger.getAll()
-      .filter(function (st) { return st.vars.id === stId; })
-      .forEach(function (st) { st.kill(); });
-
-    var inner = el.querySelector('[data-footer-parallax-inner]');
-    var dark  = el.querySelector('[data-footer-parallax-dark]');
-    if (!inner && !dark) return;
-
-    if (inner) gsap.set(inner, { clearProps: 'yPercent,transform' });
-    if (dark)  gsap.set(dark,  { clearProps: 'opacity' });
-
-    var tl = gsap.timeline({
-      scrollTrigger: {
-        id: stId,
-        trigger: el,
-        start: 'top bottom',
-        end: 'top top',
-        scrub: true,
-      },
-    });
-
-    if (inner) tl.from(inner, { yPercent: -25, ease: 'linear' });
-    if (dark)  tl.from(dark,  { opacity: 0.5, ease: 'linear' }, '<');
-  });
-};
 
 // -----------------------------------------------------------------------------
 // SITE-WIDE: cursor link scale
