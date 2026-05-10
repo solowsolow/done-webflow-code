@@ -44,6 +44,9 @@ var SKIP_INITS = {
   initLenisToggleHandlers: 1,
   initCustomAnimations: 1,
   initLumosColorChanger: 1,
+  // Google Maps API callback — wywołany przez Maps API po async load, NIE przez nasz orchestrator
+  // (orchestrator wywołałby PRZED google.* defined → ReferenceError).
+  initMap: 1,
 };
 
 function initLenis() {
