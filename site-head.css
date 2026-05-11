@@ -400,3 +400,15 @@ img, video, canvas {
     display: none;
   }
 }
+
+/* =============================================================================
+   GSAP Draggable Slider — override internal overflow management
+   GSAP Draggable z type:'x' inline ustawia overflow na parent dragowanego
+   elementu (tutaj [data-gsap-slider-collection]) żeby zapobiec vertical scroll.
+   W naszym layoucie root .gsap-slider już ma overflow:hidden (z Designerem) —
+   collection NIE potrzebuje dodatkowego clipping'a. Wymuszamy visible żeby
+   slidy mogły wystawać poza collection do krawędzi root'a (bleeded look).
+   ============================================================================= */
+[data-gsap-slider-collection] {
+  overflow: visible !important;
+}
