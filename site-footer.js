@@ -134,10 +134,10 @@ function runLeave(container) {
     tl.set(panelTop, { scaleY: 0, height: '15vw' }, 0);
     tl.set(panelBot, { scaleY: 1, height: '20vw' }, 0);
     tl.set(logo, { autoAlpha: 1 });
-    tl.set(paths, { yPercent: 105 });
+    tl.set(paths, { yPercent: 120});
     tl.fromTo(panel, { yPercent: 0 }, { yPercent: -100, duration: 1 }, 0);
     tl.fromTo(panelTop, { scaleY: 0 }, { scaleY: 1, duration: 1 }, '<');
-    tl.fromTo(paths, { yPercent: 105 }, { yPercent: 0, duration: 0.8, ease: 'expo.out', stagger: { amount: 0.06 } }, '<+=0.4');
+    tl.fromTo(paths, { yPercent: 120 }, { yPercent: 0, duration: 0.8, ease: 'expo.out');
     tl.fromTo(container, { y: '0vh' }, { y: '-15dvh', duration: 1 }, 0);
   });
 }
