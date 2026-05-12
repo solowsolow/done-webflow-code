@@ -137,7 +137,7 @@ function runLeave(container) {
     tl.set(paths, { yPercent: 120});
     tl.fromTo(panel, { yPercent: 0 }, { yPercent: -100, duration: 1 }, 0);
     tl.fromTo(panelTop, { scaleY: 0 }, { scaleY: 1, duration: 1 }, '<');
-    tl.fromTo(paths, { yPercent: 120 }, { yPercent: 0, duration: 0.8, ease: 'expo.out');
+    tl.fromTo(paths, { yPercent: 120 }, { yPercent: 0, duration: 0.8, ease: 'expo.out' }, '<');
     tl.fromTo(container, { y: '0vh' }, { y: '-15dvh', duration: 1 }, 0);
   });
 }
