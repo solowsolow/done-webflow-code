@@ -11,20 +11,13 @@
   --animation-default: var(--duration-default) var(--cubic-default);
   --gap: 2em;
   --section-padding: calc(3.5em + (var(--gap) * 2));
-  --container-padding: 2em;
   --header-height: calc(1.5em + (var(--gap) * 2));
   --footer-height: calc(2.785em + (var(--gap) * 2));
-}
-
-/* Tablet */
-@media screen and (max-width: 991px) {
-  :root { --container-padding: 1.5em; }
 }
 
 /* Mobile Landscape */
 @media screen and (max-width: 767px) {
   :root {
-    --container-padding: 1em;
     --section-padding: calc(var(--gap) * 2);
   }
 }
