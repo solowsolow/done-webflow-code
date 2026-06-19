@@ -341,48 +341,11 @@ input:focus-visible {
 [data-large-columns="12"] { display: grid; --_column-count---value: 12; }
 .slider_offset { --slide-count: var(--lg); --lg: 3; --md: var(--lg); --sm: var(--md); --xs: var(--sm); }
 
-@container (width < 50em) {
-  * {
-    --_responsive---large: 0;
-    --_responsive---medium: 1;
-    --flex-medium: flex;
-    --none-medium: none;
-    --column-medium: column;
-    --row-medium: row;
-    --start-medium: start;
-    --center-medium: center;
-    --end-medium: end;
-    --relative-medium: relative;
-  }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="1"] { display: flex; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="2"] { display: grid; --_column-count---value: 2; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="3"] { display: grid; --_column-count---value: 3; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="4"] { display: grid; --_column-count---value: 4; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="5"] { display: grid; --_column-count---value: 5; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="6"] { display: grid; --_column-count---value: 6; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="7"] { display: grid; --_column-count---value: 7; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="8"] { display: grid; --_column-count---value: 8; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="9"] { display: grid; --_column-count---value: 9; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="10"] { display: grid; --_column-count---value: 10; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="11"] { display: grid; --_column-count---value: 11; }
-  :not([data-wf--grid--variant*="auto"]) > [data-medium-columns="12"] { display: grid; --_column-count---value: 12; }
-  .u-order-first-medium { order: -1; }
-  .u-order-auto-medium { order: 0; }
-  .u-order-last-medium { order: 1; }
-  .u-display-contents-medium { display: contents; }
-  .u-display-block-medium { display: block; }
-  .u-display-grid-medium { display: grid; }
-  .u-display-flex-medium { display: flex; }
-  .u-display-none-medium { display: none; }
-  .u-all-unset-medium { all: unset; }
-  .slider_offset { --slide-count: var(--md); }
-}
-
-/* D ONE FIX (2026-06-19): OSMO zmniejsza --size-font na tablecie (unit 14, ideal 834), przez co
-   prog medium @container (50em = font kontenera) jest zbyt waski i medium NIE odpala na tablecie
-   -> data-medium-columns pokazuje liczbe desktopowa. Tu wymuszamy reguly medium na VIEWPORTCIE
-   tabletu (768-991). Desktop (>991) i mobile (<768) nietkniete; odporne na zmiany --size-unit. */
-@media screen and (min-width: 768px) and (max-width: 991px) {
+/* D ONE FIX (2026-06-19 v2): tablet --size-unit 14 skurczyl --size-font, przez co prog medium
+   50em (em = font kontenera) byl za maly i medium nie odpalal na tablecie. Podbity do 58em
+   (~50 x 16/14, z marginesem). Canvas-safe: to nadal @container (nie @media, ktore psulo kanwe).
+   Desktop: medium odpala dla kontenerow < 58em*font (~928px@16) -> zweryfikuj zaakceptowany desktop. */
+@container (width < 58em) {
   * {
     --_responsive---large: 0;
     --_responsive---medium: 1;
