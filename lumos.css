@@ -24,7 +24,7 @@
 /* Mobile Landscape */
 @media screen and (max-width: 767px) {
   :root {
-    --container-padding: 0.875em; /* D ONE: -1/8 (bylo 1em) na mobile poziomym + pionowym (portret dziedziczy z <=767) */
+    --container-padding: 1em;
     --section-padding: calc(var(--gap) * 2);
   }
 }
