@@ -382,7 +382,10 @@ window.initLogoGrid = function (scope) {
     var INTERVAL = 1500;
     var SLIDE = 60;
 
+    var BREAKPOINT = 991; // <=991px = tablet i mniej (8 logo); powyzej desktop (10)
+
     var list = root.querySelector('[data-logo-wall-list]');
+    if (!list) return;
     var allItems = Array.from(list.querySelectorAll('[data-logo-wall-item]'));
 
     allItems.forEach(function (item) {
@@ -393,22 +396,11 @@ window.initLogoGrid = function (scope) {
       });
     });
 
-    var visibleItems = allItems.filter(function (item) {
-      return window.getComputedStyle(item).display !== 'none';
-    });
-    var SLOTS = visibleItems.length;
-    if (!SLOTS) return;
-
+    // Pelny zestaw logo (referencje trzymane na stale; build() rozdaje je do widocznych slotow).
     var allLogos = allItems
       .map(function (item) { return item.querySelector('[data-logo-wall-target]'); })
       .filter(Boolean);
-    if (allLogos.length < SLOTS) return;
-
-    var parents = visibleItems.map(function (item) {
-      return item.querySelector('[data-logo-wall-target-parent]') || item;
-    });
-
-    allLogos.forEach(function (logo) { logo.remove(); });
+    if (!allLogos.length) return;
 
     function shuffle(arr) {
       var a = arr.slice();
@@ -419,95 +411,135 @@ window.initLogoGrid = function (scope) {
       return a;
     }
 
-    var shuffled = shuffle(allLogos);
-    var visible = shuffled.slice(0, SLOTS);
-    var queue = shuffle(shuffled.slice(SLOTS));
-    var busy = new Array(SLOTS).fill(false);
-    var lastSwap = -1;
+    // Jeden cykl zycia animacji dla biezacej liczby slotow (SLOTS = widoczne itemy). Zwraca { destroy }.
+    function build() {
+      var visibleItems = allItems.filter(function (item) {
+        return window.getComputedStyle(item).display !== 'none';
+      });
+      var SLOTS = visibleItems.length;
+      if (!SLOTS || allLogos.length < SLOTS) return null;
 
-    visible.forEach(function (logo, i) { parents[i].appendChild(logo); });
+      var parents = visibleItems.map(function (item) {
+        return item.querySelector('[data-logo-wall-target-parent]') || item;
+      });
 
-    function swap(idx) {
-      if (busy[idx] || !queue.length) return;
-      busy[idx] = true;
+      allLogos.forEach(function (logo) { logo.remove(); });
+      gsap.set(allLogos, { clearProps: 'all' }); // czysty start (wazne przy rebuildzie po resize)
 
-      var outgoing = visible[idx];
-      var incoming = queue.shift();
+      var shuffled = shuffle(allLogos);
+      var visible = shuffled.slice(0, SLOTS);
+      var queue = shuffle(shuffled.slice(SLOTS));
+      var busy = new Array(SLOTS).fill(false);
+      var lastSwap = -1;
 
-      gsap.killTweensOf(incoming);
-      gsap.set(incoming, { clearProps: 'all' });
-      gsap.set(incoming, { yPercent: SLIDE, autoAlpha: 0 });
+      visible.forEach(function (logo, i) { parents[i].appendChild(logo); });
 
-      parents[idx].appendChild(incoming);
+      function swap(idx) {
+        if (busy[idx] || !queue.length) return;
+        busy[idx] = true;
 
-      if (outgoing) {
-        gsap.killTweensOf(outgoing);
-        gsap.to(outgoing, {
-          yPercent: -SLIDE,
-          autoAlpha: 0,
+        var outgoing = visible[idx];
+        var incoming = queue.shift();
+
+        gsap.killTweensOf(incoming);
+        gsap.set(incoming, { clearProps: 'all' });
+        gsap.set(incoming, { yPercent: SLIDE, autoAlpha: 0 });
+
+        parents[idx].appendChild(incoming);
+
+        if (outgoing) {
+          gsap.killTweensOf(outgoing);
+          gsap.to(outgoing, {
+            yPercent: -SLIDE,
+            autoAlpha: 0,
+            duration: DURATION,
+            ease: 'expo.inOut',
+            onComplete: function () {
+              gsap.set(outgoing, { clearProps: 'all' });
+              outgoing.remove();
+              queue.push(outgoing);
+            },
+          });
+        }
+
+        gsap.to(incoming, {
+          yPercent: 0,
+          autoAlpha: 1,
           duration: DURATION,
           ease: 'expo.inOut',
           onComplete: function () {
-            gsap.set(outgoing, { clearProps: 'all' });
-            outgoing.remove();
-            queue.push(outgoing);
+            visible[idx] = incoming;
+            busy[idx] = false;
           },
         });
       }
 
-      gsap.to(incoming, {
-        yPercent: 0,
-        autoAlpha: 1,
-        duration: DURATION,
-        ease: 'expo.inOut',
-        onComplete: function () {
-          visible[idx] = incoming;
-          busy[idx] = false;
-        },
-      });
-    }
-
-    function tick() {
-      if (!queue.length) return;
-      var available = [];
-      for (var i = 0; i < SLOTS; i++) {
-        if (!busy[i]) available.push(i);
+      function tick() {
+        if (!queue.length) return;
+        var available = [];
+        for (var i = 0; i < SLOTS; i++) {
+          if (!busy[i]) available.push(i);
+        }
+        if (!available.length) return;
+        var preferred = available.filter(function (i) { return i !== lastSwap; });
+        var candidates = preferred.length ? preferred : available;
+        var idx = candidates[Math.floor(Math.random() * candidates.length)];
+        lastSwap = idx;
+        swap(idx);
       }
-      if (!available.length) return;
-      var preferred = available.filter(function (i) { return i !== lastSwap; });
-      var candidates = preferred.length ? preferred : available;
-      var idx = candidates[Math.floor(Math.random() * candidates.length)];
-      lastSwap = idx;
-      swap(idx);
+
+      var timer = null;
+      var inViewport = false;
+
+      function updateTimer() {
+        var run = inViewport && !document.hidden;
+        if (run && !timer) timer = setInterval(tick, INTERVAL);
+        if (!run && timer) { clearInterval(timer); timer = null; }
+      }
+
+      var st = ScrollTrigger.create({
+        trigger: root,
+        start: 'top bottom',
+        end: 'bottom top',
+        onEnter: function () { inViewport = true; updateTimer(); },
+        onLeave: function () { inViewport = false; updateTimer(); },
+        onEnterBack: function () { inViewport = true; updateTimer(); },
+        onLeaveBack: function () { inViewport = false; updateTimer(); },
+      });
+
+      // Sekcja moze byc juz w viewporcie (np. rebuild po resize) -> odpal timer od razu.
+      inViewport = !!st.isActive;
+      updateTimer();
+
+      document.addEventListener('visibilitychange', updateTimer);
+
+      return {
+        destroy: function () {
+          if (timer) { clearInterval(timer); timer = null; }
+          document.removeEventListener('visibilitychange', updateTimer);
+          if (st) st.kill();
+          gsap.killTweensOf(allLogos);
+        },
+      };
     }
 
-    var timer = null;
-    var inViewport = false;
+    var instance = build();
 
-    function updateTimer() {
-      var run = inViewport && !document.hidden;
-      if (run && !timer) timer = setInterval(tick, INTERVAL);
-      if (!run && timer) { clearInterval(timer); timer = null; }
+    // SLOTS liczone raz na build -> przy przekroczeniu progu tabletu przebuduj (10 <-> 8).
+    var mq = window.matchMedia('(max-width: ' + BREAKPOINT + 'px)');
+    function onBreakpointChange() {
+      if (instance) { instance.destroy(); instance = null; }
+      instance = build();
     }
-
-    var st = ScrollTrigger.create({
-      trigger: root,
-      start: 'top bottom',
-      end: 'bottom top',
-      onEnter: function () { inViewport = true; updateTimer(); },
-      onLeave: function () { inViewport = false; updateTimer(); },
-      onEnterBack: function () { inViewport = true; updateTimer(); },
-      onLeaveBack: function () { inViewport = false; updateTimer(); },
-    });
-
-    document.addEventListener('visibilitychange', updateTimer);
+    if (mq.addEventListener) mq.addEventListener('change', onBreakpointChange);
+    else if (mq.addListener) mq.addListener(onBreakpointChange); // Safari < 14
 
     window._logoGridInstances = window._logoGridInstances || [];
     window._logoGridInstances.push({
       destroy: function () {
-        if (timer) { clearInterval(timer); timer = null; }
-        document.removeEventListener('visibilitychange', updateTimer);
-        if (st) st.kill();
+        if (instance) { instance.destroy(); instance = null; }
+        if (mq.removeEventListener) mq.removeEventListener('change', onBreakpointChange);
+        else if (mq.removeListener) mq.removeListener(onBreakpointChange);
       },
     });
   });
