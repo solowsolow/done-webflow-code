@@ -59,7 +59,7 @@
 /* Mobile Landscape */
 @media screen and (max-width: 767px) {
   :root {
-    --size-container-ideal: 390;
+    --size-container-ideal: 600; /* D ONE FIX: bylo 390 — deska << viewport (480-767), font zoomowal do ~27px (wieksze niz desktop). 600 = w zakresie -> ~11-18px, proporcjonalnie jak reszta. */
     --size-container-min: 480px;
     --size-container-max: 767px;
   }
