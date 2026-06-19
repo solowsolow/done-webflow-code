@@ -1,11 +1,15 @@
 /* --- OSMO Logo Grid --- */
 
+/* Desktop: 10 logo widocznych (11. wzwyż ukryte). */
 [data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 11) {
   display: none;
 }
 
+/* Tablet i mniejsze: tylko 8 logo (9. wzwyż ukryte).
+   initLogoGrid czyta SLOTS = liczba widocznych [data-logo-wall-item],
+   więc cykl rotacji sam dopasuje się do 8 slotów. */
 @media screen and (max-width: 991px) {
-  [data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 11) {
+  [data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 9) {
     display: none;
   }
 }
