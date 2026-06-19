@@ -52,7 +52,7 @@
     --size-container-ideal: 834;
     --size-container-min: 768px;
     --size-container-max: 991px;
-    --size-unit: 12.8; /* 16 x 0.8 -> tablet 20% mniejszy (formula nietknieta) */
+    --size-unit: 14; /* tablet: baza 14px (z 16); wczesniej 12.8 */
   }
 }
 
