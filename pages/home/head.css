@@ -5,11 +5,10 @@
   display: none;
 }
 
-/* Tablet i mniejsze: tylko 8 logo (9. wzwyż ukryte).
-   initLogoGrid czyta SLOTS = liczba widocznych [data-logo-wall-item],
-   więc cykl rotacji sam dopasuje się do 8 slotów. */
+/* Tablet i mniejsze: 12 logo (13. wzwyż ukryte). HTML ma 17 logo -> 5 zostaje w rotacji.
+   initLogoGrid czyta SLOTS = liczba widocznych [data-logo-wall-item], cykl dopasuje się sam. */
 @media screen and (max-width: 991px) {
-  [data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 9) {
+  [data-logo-wall-list] [data-logo-wall-item]:nth-child(n + 13) {
     display: none;
   }
 }
