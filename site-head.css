@@ -246,66 +246,26 @@ body:not(:has([data-move-cursor='content'])) [data-move-cursor='target'] {
   clip-path: inset(-100px 0);
 }
 
-/* ──────────────────────────────────────────────────────────────────
-   svh/dvh migration overrides (sesja 2026-04-24)
-   Webflow MCP style_tool nie dał się zaktualizować dla combo classes
-   (parent_style_names zwraca success ale CSS nie zmieniony) + media
-   breakpoints + 6 klas not-found (legacy / component scope).
-   CSS override bije wszystko z wygenerowanego CSS Webflow.
-────────────────────────────────────────────────────────────────── */
+/* svh/dvh overrides — posprzatane 2026-06-19 (audyt DOM na live).
+   Usunieto MARTWE (sekcje przebudowane): hero "tetter", home-project_text/_paragraph-wrap,
+   div-block-2, *.is-home-about, d-shape_bg-wrap. Zostaly tylko ZYWE + sticky scoped do desktopu. */
 
-/* Combo classes — dvh → svh (anti-jitter) */
-.u-layout-column-1.is-sticky-about-group {
-  top: clamp(var(--_spacing---section-space--small), var(--_spacing---section-space--small) + 7svh, 20svh) !important;
+/* Sticky about column (D Group): sticky tylko na desktopie. Na tablecie/mobile element jest
+   position:relative, wiec top !important spychal kolumne ~100px w dol. Scoped do >=992. */
+@media screen and (min-width: 992px) {
+  .u-layout-column-1.is-sticky-about-group {
+    top: clamp(var(--_spacing---section-space--small), var(--_spacing---section-space--small) + 7svh, 20svh) !important;
+  }
 }
-.home-hero_content-text-tetter.u-text.u-text-style-display,
-.home-hero_content-text-tetter.u-text.u-text-style-display.is--space {
-  font-size: clamp(15svh, 22vw, 22svh) !important;
-}
-.home-project_text.u-text {
-  font-size: clamp(4rem, 1.25rem + 20vw, 22svh) !important;
-  margin-bottom: calc(clamp(4rem, 1.25rem + 20vw, 25svh) + (-0.900001 * clamp(4rem, 1.25rem + 20vw, 25svh))) !important;
-}
-.home-project_text.u-text.is-paragraph {
-  font-size: clamp(1.25rem, 1.25rem + 20vw, 3svh) !important;
-  margin-top: calc(clamp(4rem, 1.25rem + 20vw, 25svh) + (-0.925001 * clamp(4rem, 1.25rem + 20vw, 25svh))) !important;
-  margin-bottom: 0 !important;
-}
-.home-project_paragraph-wrap {
-  margin-top: calc(clamp(4rem, 1.25rem + 20vw, 22svh) + (-0.750002 * clamp(4rem, 1.25rem + 20vw, 22svh))) !important;
-}
+
+/* Nav small link (site-wide) */
 .nav_sm-link.is--alt-link {
   font-size: clamp(1.125rem, 1rem + 15vw, 2svh) !important;
 }
 
-/* Media breakpoints — home-hero text-tetter responsive font sizes */
-@media screen and (max-width: 991px) {
-  .home-hero_content-text-tetter.u-text.u-text-style-display {
-    font-size: clamp(11rem, 50vw - 12svh, 20svh) !important;
-  }
-}
-@media screen and (max-width: 767px) {
-  .home-hero_content-text-tetter.u-text.u-text-style-display {
-    font-size: clamp(6rem, 50vw - 12svh, 20svh) !important;
-  }
-}
-@media screen and (max-width: 479px) {
-  .home-hero_content-text-tetter.u-text.u-text-style-display {
-    font-size: clamp(6rem, 50vw - 10svh, 15svh) !important;
-  }
-}
-
-/* Not-found classes (MCP nie znalazł w Style Manager, prawdopodobnie
-   legacy albo generated w runtime przez snake init JS / inne). */
-.div-block-2 {
-  height: 100svh !important;
-}
+/* D-shape snake wrapper height (site-wide) */
 .d-shape_snake-move-wrap {
   height: 90svh !important;
-}
-.d-shape_snake-img-wrap.is-home-about,
-.d-shape_bg-wrap.is-home-about {
-  margin-top: 25svh !important;
 }
 
 /* Marquee with Scroll Direction */
