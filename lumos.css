@@ -1,7 +1,8 @@
 /* D ONE — Lumos (pełny, skonsolidowany z inline Embed 2026-06-19)
    Źródło prawdy: done-webflow-code/lumos.css (CDN @main, <head>).
    Zawiera: OSMO scaling + spacing + reset + WSZYSTKIE utilities Lumos.
-   Inline Embed 'Combined CSS' w <body> USUNIĘTY (był dublem nadpisującym ten plik).
+   Embed inline w <body> = LUSTRO tego pliku (kanwa Webflow wymaga Lumosa inline;
+   CDN/@import są w Designerze niewidoczne). Ten plik = master, Embed = jego kopia deployowa.
    Paleta --color-* wycięta (0 użyć w shared.css/HTML; kolory = zmienne Webflow --_theme---*). */
 
 /* ============================================================
@@ -45,11 +46,12 @@
 /* Desktop */
 :root {
   --size-unit: 16; /* body font-size in design - no px */
+  --size-scale: 1; /* globalny mnożnik skali (1 = bez zmian); nadpisywany per-breakpoint */
   --size-container-ideal: 1440; /* screen-size in design - no px */
   --size-container-min: 992px;
   --size-container-max: 1920px;
   --size-container: clamp(var(--size-container-min), 100vw, var(--size-container-max));
-  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)));
+  --size-font: calc(var(--size-container) / (var(--size-container-ideal) / var(--size-unit)) * var(--size-scale));
 }
 
 /* Tablet */
@@ -58,6 +60,7 @@
     --size-container-ideal: 834;
     --size-container-min: 768px;
     --size-container-max: 991px;
+    --size-scale: 0.8; /* tablet: wszystko 20% mniejsze niż dotąd */
   }
 }
 
