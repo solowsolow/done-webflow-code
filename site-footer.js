@@ -1061,6 +1061,41 @@ window.initScrollProgressBar = function () {
 };
 
 // -----------------------------------------------------------------------------
+// SITE-WIDE: scroll half viewport down on click (.scroll-half-page)
+// -----------------------------------------------------------------------------
+// Klik w dowolny element .scroll-half-page → Lenis przewija o połowę aktualnego
+// viewportu w dół. Delegacja na document (działa też dla elementów z CMS / dodanych
+// później). Lenis MUST — window.scrollTo nie współpracuje z Lenis raf (transform na <html>).
+// Guard data-scroll-half-page-ready chroni przed double-bind listenera przy re-init.
+window.initScrollHalfPage = function () {
+  if (document.body.hasAttribute('data-scroll-half-page-ready')) return;
+  document.body.setAttribute('data-scroll-half-page-ready', '');
+
+  var FRACTION = 0.5; // ile viewportu przewinąć (0.5 = połowa) — łatwy tuning point
+
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest && e.target.closest('.scroll-half-page');
+    if (!trigger) return;
+    e.preventDefault(); // gdyby button był <a href="#"> — blokuje natywny skok
+
+    var delta = window.innerHeight * FRACTION;
+
+    if (window.lenis) {
+      // targetScroll (nie scroll) → szybkie kolejne kliki sumują się poprawnie
+      var base = window.lenis.targetScroll != null ? window.lenis.targetScroll : window.lenis.scroll;
+      window.lenis.scrollTo(base + delta, {
+        duration: 0.8,
+        easing: function (x) {
+          return x < 0.5 ? 8 * Math.pow(x, 4) : 1 - Math.pow(-2 * x + 2, 4) / 2;
+        },
+      });
+    } else {
+      window.scrollBy({ top: delta, behavior: 'smooth' }); // fallback bez Lenis
+    }
+  });
+};
+
+// -----------------------------------------------------------------------------
 // SITE-WIDE: OSMO Dynamic Text Cursor
 // -----------------------------------------------------------------------------
 // Element [data-cursor] z childem [data-cursor-text-target] (text inside bubble).
