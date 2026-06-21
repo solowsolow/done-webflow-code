@@ -4,3 +4,6 @@
 node_modules/
 .vscode/
 .idea/
+
+# prywatna kolekcja chwytów (haki) — klonowana lokalnie do _haki/, NIGDY nie commitować do tego PUBLICZNEGO repo
+_haki/
