@@ -30,6 +30,29 @@
     var observer;
     var animationDuration = 0.9;
 
+    // Lazy/orientation helpers: tylko WIDOCZNA orientacja (display !== none) ładuje się/gra.
+    function visibleVideos(slide) {
+      return Array.prototype.slice.call(slide.querySelectorAll('video')).filter(function (v) {
+        return window.getComputedStyle(v).display !== 'none';
+      });
+    }
+    function playSlide(slide) {
+      visibleVideos(slide).forEach(function (v) {
+        try { v.currentTime = 0; } catch (e) {}
+        var p = v.play(); if (p && p.catch) p.catch(function () {});
+      });
+    }
+    function resumeSlide(slide) {
+      visibleVideos(slide).forEach(function (v) {
+        var p = v.play(); if (p && p.catch) p.catch(function () {});
+      });
+    }
+    function pauseSlide(slide) {
+      visibleVideos(slide).forEach(function (v) {
+        v.pause(); try { v.currentTime = 0; } catch (e) {}
+      });
+    }
+
     slides.forEach(function (slide, i) { slide.setAttribute('data-index', i); });
     thumbs.forEach(function (thumb, i) { thumb.setAttribute('data-index', i); });
 
@@ -69,17 +92,11 @@
           upcomingSlide.classList.add('is--current');
           thumbs[previous].classList.remove('is--current');
           thumbs[current].classList.add('is--current');
-          upcomingSlide.querySelectorAll('video').forEach(function (v) {
-            v.currentTime = 0;
-            v.play().catch(function () {});
-          });
+          playSlide(upcomingSlide);
         },
         onComplete: function () {
           currentSlide.classList.remove('is--current');
-          currentSlide.querySelectorAll('video').forEach(function (v) {
-            v.pause();
-            v.currentTime = 0;
-          });
+          pauseSlide(currentSlide);
           gsap.set(currentSlide, { xPercent: 100 });
           if (currentInners.length) gsap.set(currentInners, { xPercent: -50 });
           animating = false;
@@ -121,8 +138,25 @@
       tolerance: 10,
     });
 
+    // LAZY: ładuj+graj widoczną orientację aktywnego slajdu, gdy sekcja jest ~1 ekran przed
+    // kadrem (preload-ahead). Bez autoplay (Designer) wideo nie ściągają się wcześniej.
+    // resumeSlide (bez resetu) — ponowne wejście w kadr wznawia, nie restartuje od 0.
+    var lazyRoot = el.closest('.section_home-project') || el;
+    var lazyIO = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      lazyIO = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) { resumeSlide(slides[current]); break; }
+        }
+      }, { rootMargin: '100% 0px 100% 0px' }); // ~1 ekran zapasu w obie strony (tuning point)
+      lazyIO.observe(lazyRoot);
+    } else {
+      resumeSlide(slides[current]); // brak IO → graj od razu (degradacja do nie-lazy)
+    }
+
     return {
       destroy: function () {
+        if (lazyIO) lazyIO.disconnect();
         if (observer) observer.kill();
         thumbs.forEach(function (thumb) { thumb.removeEventListener('click', onClick); });
       },
@@ -142,206 +176,149 @@
   };
 })();
 
+/**
+ * window.initFlipOnScroll(scope) — scaling element header: target [data-flip-element='target']
+ * rośnie scroll-driven do pełnego ekranu, z "wlotem" small-boxa zsekwencjonowanym PRZED wzrostem.
+ *
+ * Przebudowa 2026-06-26 (v2 — wlot w GSAP, na czas). Dwa SĄSIADUJĄCE zakresy scrolla:
+ *   - wlot:  [stStart - WLOT_ENTER_VH*vh, stStart]  (podczas wjazdu sekcji, przed przypięciem)
+ *   - wzrost:[stStart, stEnd]                        (podczas przypięcia)
+ * Wlot kończy DOKŁADNIE tam, gdzie zaczyna się wzrost → brak nakładania, działa w obie strony
+ * (forward: wlot→wzrost; reverse: zmniejszenie→wylot), niezależnie od kierunku/refresh.
+ *
+ * Dlaczego tak (historia bugów):
+ *   - geometria wzrostu przez offsetParent-chain (offsetLeft/Top = LAYOUT, transform-immune) →
+ *     poprawna niezależnie od transformu przodka. Naprawia rozcentrowanie przy resize/fast-scroll.
+ *   - small-box (wlot) sterowany przez style.setProperty(..., 'important') co klatkę — NADPISUJE
+ *     natywny Webflow IX3 bez migotania (IX3 animuje `transform`, trzyma scale/rotate/translate:none).
+ *     Dzięki temu NIE trzeba usuwać interakcji IX3 w Designerze (opcjonalnie czystsze).
+ *   - bez pin (Lenis); kill-by-id (Lumos ColorChanger na tym samym .section_home-project);
+ *     progress z window.scrollY; resize: debounce + double-rAF settle → pełny rebuild.
+ *
+ * Pokrętła: WLOT_ENTER_VH (jak wcześnie/długo trwa wlot), WLOT_EASE, WLOT_FROM.
+ * Guard `data-flip-ready` na triggerze chroni przed double-init.
+ */
 window.initFlipOnScroll = function (scope) {
   if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
   var ctx = scope || document;
-
-  var wrappers = Array.from(ctx.querySelectorAll("[data-flip-element='wrapper']"));
+  var wrappers = Array.prototype.slice.call(ctx.querySelectorAll("[data-flip-element='wrapper']"));
   var targetEl = ctx.querySelector("[data-flip-element='target']");
   var triggerEl = ctx.querySelector("[data-flip-element='trigger']");
   if (!wrappers.length || !targetEl || !triggerEl) return;
   if (triggerEl.dataset.flipReady) return;
   triggerEl.dataset.flipReady = '1';
-
-  var stickyHeader =
-    ctx.querySelector('.scaling-element-header') ||
-    document.querySelector('.scaling-element-header');
+  var stickyHeader = ctx.querySelector('.scaling-element-header') || document.querySelector('.scaling-element-header');
   if (!stickyHeader) return;
+  var smallBox = targetEl.closest('.scaling-element__small-box');
 
-  // Extras (slider nav + button wrap) — wjeżdżają z dołu w trakcie flip animacji.
-  // Pre-emptive hide IMMEDIATE (przed pierwszym paint po init) żeby nie były
-  // widoczne w natural CSS state przed odpaleniem buildTimeline (które jest
-  // deferred do sticky activation w top-load path).
+  // --- STROJENIE WLOTU ---
+  var WLOT_ENTER_VH = 1; // ile vh PRZED przypięciem trwa wlot (jak wcześnie rusza)
+  var WLOT_EASE = (gsap.parseEase && gsap.parseEase('power2.out')) || function (x) { return x; };
+  var WLOT_FROM = { xPercent: -200, yPercent: 200, rotation: -45, scale: 3, opacity: 0 };
+  // -----------------------
+
   var extraEls = [];
-  var navEl = ctx.querySelector('.img-slider__nav');
-  if (navEl) extraEls.push(navEl);
-  var btnWrap = ctx.querySelector('.scaling-video__button-wrap');
-  if (btnWrap) extraEls.push(btnWrap);
-  if (extraEls.length) {
-    gsap.set(extraEls, { yPercent: 300, opacity: 0 });
-  }
+  var navEl = ctx.querySelector('.img-slider__nav'); if (navEl) extraEls.push(navEl);
+  var btnWrap = ctx.querySelector('.scaling-video__button-wrap'); if (btnWrap) extraEls.push(btnWrap);
+  if (extraEls.length) gsap.set(extraEls, { yPercent: 300, opacity: 0 });
 
-  var tl;
-  var resizeTimer;
-  var tickerFn;
   var ST_ID = 'flip-on-scroll';
+  var tlExtras = null, tickerFn = null, resizeTimer = null, geom = null, stStart = 0, stEnd = 0, wlotStart = 0;
 
-  function buildTimeline() {
-    if (tl) tl.kill();
-    // Kill only own ST — Lumos ColorChanger targets the same trigger element
-    // (`.section_home-project` has data-animate-theme-to="brand") and without
-    // id-based filtering it would kill our flip ST.
-    ScrollTrigger.getAll()
-      .filter(function (st) { return st.vars.id === ST_ID; })
-      .forEach(function (st) { st.kill(); });
-    // Remove old ticker
-    if (tickerFn) {
-      gsap.ticker.remove(tickerFn);
-      tickerFn = null;
-    }
-    gsap.set(targetEl, { clearProps: 'all' });
+  function offsetToDoc(el) {
+    var x = 0, y = 0, n = el;
+    while (n) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    return { left: x, top: y };
+  }
+  function measureGeom() {
+    var w = wrappers[0];
+    var ow = offsetToDoc(w), os = offsetToDoc(stickyHeader);
+    return { top: Math.round(ow.top - os.top), left: Math.round(ow.left - os.left), w: w.offsetWidth, h: w.offsetHeight };
+  }
+  function computeRange() {
+    var r = triggerEl.getBoundingClientRect();
+    var a = r.top + window.scrollY;
+    stStart = a;
+    stEnd = a + r.height - window.innerHeight * 1.2;
+    wlotStart = stStart - WLOT_ENTER_VH * window.innerHeight;
+  }
 
-    // KEY: stickyOff = 0 hardcoded. stickyHeader jest pierwszym dzieckiem section
-    // (offset 0). stickyHeader.offsetTop ZAWODNE w mid-scroll context — Chrome zwraca
-    // pinned distance (np. 560px gdy sticky pinned przez 560px scrolla) zamiast
-    // natural offset (0). Skutkowało to range = stEnd - stStart = 16px (animacja
-    // wyglądała jak instant jump).
-    var shRect = stickyHeader.getBoundingClientRect();
-    var w0Rect = wrappers[0].getBoundingClientRect();
-    var startTop = Math.round(w0Rect.top - shRect.top);
-    var startLeft = Math.round(w0Rect.left - shRect.left);
-
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-
-    // Numeric scroll positions for animation range
-    var triggerRect = triggerEl.getBoundingClientRect();
-    var triggerAbsTop = triggerRect.top + window.scrollY;
-    var triggerAbsBottom = triggerAbsTop + triggerRect.height;
-    var stStart = triggerAbsTop;
-    var stEnd = triggerAbsBottom - vh * 1.2;
-
-    gsap.set(targetEl, { zIndex: 1 });
-
-    // Paused timeline — progress kontrolowany manualnie przez scroll listener.
-    // Powód: GSAP ScrollTrigger CLAMPS numeric start do current scrollY przy create
-    // w mid-scroll context (refresh-w-środku → ST.start = scrollY zamiast triggerAbsTop,
-    // range spada do kilku px → animacja wygląda jak instant). Manual scroll listener
-    // bypasses clamping → progress jest zawsze (scrollY - stStart) / (stEnd - stStart),
-    // niezależnie kiedy timeline było stworzone.
-    tl = gsap.timeline({ paused: true });
-
-    tl.to(targetEl, {
-      top: -startTop,
-      left: -startLeft,
-      width: vw,
-      height: vh,
-      zIndex: 100,
-      ease: 'none',
-      duration: 1,
+  // WLOT na small-box przez !important — nadpisuje natywny IX3 (gdyby nie usunięty), bez migotania.
+  function setSmallBox(wlotP) {
+    if (!smallBox) return;
+    var w = WLOT_EASE(wlotP);
+    var xp = WLOT_FROM.xPercent * (1 - w), yp = WLOT_FROM.yPercent * (1 - w), rot = WLOT_FROM.rotation * (1 - w),
+        sc = 1 + (WLOT_FROM.scale - 1) * (1 - w), op = WLOT_FROM.opacity + (1 - WLOT_FROM.opacity) * w;
+    smallBox.style.setProperty('transform', 'translate(' + xp + '%,' + yp + '%) rotate(' + rot + 'deg) scale(' + sc + ')', 'important');
+    smallBox.style.setProperty('opacity', String(op), 'important');
+  }
+  function applyGrow(growP) {
+    if (!geom) return;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    gsap.set(targetEl, {
+      top: -geom.top * growP, left: -geom.left * growP,
+      width: geom.w + (vw - geom.w) * growP, height: geom.h + (vh - geom.h) * growP,
+      zIndex: growP > 0.001 ? 100 : 1
     });
-
-    // extras refs są w outer scope (pre-emptive hide na init).
+    if (extraEls.length && tlExtras) tlExtras.progress(growP);
+  }
+  function teardown() {
+    if (tlExtras) { tlExtras.kill(); tlExtras = null; }
+    ScrollTrigger.getAll().filter(function (st) { return st.vars.id === ST_ID || st.vars.id === ST_ID + '-defer'; }).forEach(function (st) { st.kill(); });
+    if (tickerFn) { gsap.ticker.remove(tickerFn); tickerFn = null; }
+  }
+  function seal() {
+    teardown();
+    gsap.set(targetEl, { clearProps: 'transform,top,left,width,height,zIndex' });
+    geom = measureGeom(); computeRange(); gsap.set(targetEl, { zIndex: 1 });
     if (extraEls.length) {
-      tl.fromTo(extraEls,
-        { yPercent: 300, opacity: 0 },
-        { yPercent: 0, opacity: 1, ease: 'power2.out', duration: 0.22 },
-        0.38
-      );
+      tlExtras = gsap.timeline({ paused: true });
+      tlExtras.fromTo(extraEls, { yPercent: 300, opacity: 0 }, { yPercent: 0, opacity: 1, ease: 'power2.out', duration: 0.22 }, 0.38);
     }
-
-    // Manual scroll-driven progress via gsap.ticker (rAF poll co frame).
-    // Powód użycia ticker zamiast 'scroll' event: Lenis hijackuje native scroll
-    // (transform na <html>), window.addEventListener('scroll') NIE odpala przy
-    // Lenis-driven scrollu. gsap.ticker działa niezależnie od mechanizmu scrollu.
-    var lastP = -1;
-    function updateProgress() {
-      var range = stEnd - stStart;
-      if (range <= 0) return;
-      var p = Math.max(0, Math.min(1, (window.scrollY - stStart) / range));
-      if (p !== lastP) {
-        lastP = p;
-        tl.progress(p);
-      }
-    }
-    tickerFn = updateProgress;
-    gsap.ticker.add(tickerFn);
-    // Initial progress sync (refresh-w-środku scenario)
-    updateProgress();
+    var lastW = -1, lastG = -1;
+    tickerFn = function () {
+      var grRange = stEnd - stStart; if (grRange <= 0) return;
+      var sy = window.scrollY, wRange = stStart - wlotStart;
+      var wlotP = wRange > 0 ? Math.max(0, Math.min(1, (sy - wlotStart) / wRange)) : 1;
+      var growP = Math.max(0, Math.min(1, (sy - stStart) / grRange));
+      if (wlotP !== lastW) { lastW = wlotP; setSmallBox(wlotP); }
+      if (growP !== lastG) { lastG = growP; applyGrow(growP); }
+    };
+    gsap.ticker.add(tickerFn); tickerFn();
   }
-
-  // KEY FIX: Defer initial buildTimeline aż do sticky activation, kiedy IX3 small-box
-  // jest już w post-collapse state (scaleX:1, identity matrix) → wrapper.bbox jest
-  // measurable w final size/position. Bez tego initial build przy scrollY=0 mierzy
-  // wrapper jako pre-collapse (449×449/380×380 z scaleX:3), tween destination values
-  // pozostają stale i rebuild trigger nie aktualizuje ich w real page load context.
-  //
-  // Dwie ścieżki:
-  //   - scrollY już za triggerAbsTop (refresh-w-środku) → buildTimeline od razu
-  //   - scrollY przed triggerAbsTop (top load) → defer trigger, build przy sticky activate
-  var triggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
-
-  if (window.scrollY >= triggerAbsTop) {
-    // Refresh-w-środku: BUT przy boot strony Lenis może nie być jeszcze zsynchronizowany,
-    // sticky może nie być jeszcze pinned, IX3 small-box może być w pre-collapse state
-    // — measurements wracają stale values (jakby scrollY=0). Defer + retry until sticky
-    // is actually pinned (sticky.bbox.top close to 0 = pinned).
-    var attempts = 0;
-    var maxAttempts = 20; // 20 × 100ms = 2s max wait
-    function tryBuild() {
-      attempts++;
-      var shCheck = stickyHeader.getBoundingClientRect();
-      // Sticky should be pinned (top close to 0) when scrollY > triggerAbsTop.
-      // If not pinned yet, Lenis/IX3 not settled — retry.
-      if (shCheck.top > 50 && attempts < maxAttempts) {
-        setTimeout(tryBuild, 100);
-        return;
-      }
-      buildTimeline();
-    }
-    tryBuild();
-  } else {
-    // Top load: NIE buduj initial timeline z stale measurements. Czekaj aż user
-    // doscrolluje do sticky activation, wtedy buildTimeline mierzy post-collapse.
-    // Defer trigger sam się usuwa po fire (once: true).
-    ScrollTrigger.create({
-      id: ST_ID + '-defer',
-      trigger: triggerEl,
-      start: 'top top',
-      once: true,
-      onEnter: buildTimeline,
-    });
-  }
-
-  // Resize: clear + rebuild (jeśli scrollY pozwala) lub re-defer (jeśli przed trigger).
+  requestAnimationFrame(seal);
+  window.__flipOnScrollRebuild = function () {
+    teardown();
+    gsap.set(targetEl, { clearProps: 'transform,top,left,width,height,zIndex' });
+    requestAnimationFrame(seal);
+  };
   if (!window.__flipOnScrollResizeBound) {
     window.__flipOnScrollResizeBound = true;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () {
-        gsap.set(targetEl, { clearProps: 'all' });
-        var freshTriggerAbsTop = triggerEl.getBoundingClientRect().top + window.scrollY;
-        if (window.scrollY >= freshTriggerAbsTop) {
-          buildTimeline();
-        } else {
-          // Re-defer: kill old defer, create new (with fresh trigger position)
-          ScrollTrigger.getAll()
-            .filter(function (st) { return st.vars.id === ST_ID + '-defer'; })
-            .forEach(function (st) { st.kill(); });
-          ScrollTrigger.create({
-            id: ST_ID + '-defer',
-            trigger: triggerEl,
-            start: 'top top',
-            once: true,
-            onEnter: buildTimeline,
-          });
-        }
-      }, 100);
+        requestAnimationFrame(function () { requestAnimationFrame(function () {
+          if (typeof window.__flipOnScrollRebuild === 'function') window.__flipOnScrollRebuild();
+        }); });
+      }, 200);
     });
   }
 };
 
 /**
- * window.initHomeHeroVideoDelay(scope) — opóźnia start video [data-home-hero-video]
- * o 3 sekundy od momentu inita (= boot strony, po DOMContentLoaded → bootCustomAnimations).
+ * window.initHomeHeroVideoDelay(scope) — startuje hero wideo [data-home-hero-video]
+ * DOKŁADNIE w momencie odsłonięcia przez intro (zwinięcie paneli .intro_wipe do 0),
+ * zamiast na stałym timerze liczonym od załadowania strony.
  *
- * Działa niezależnie od stanu autoplay w HTML — jeśli browser już zaczął odtwarzać
- * przez autoplay attribute, init pause()uje natychmiast i resetuje currentTime do 0,
- * potem po 3s wywołuje play().
+ * Powód (fix 2026-06-25): poprzednia wersja robiła setTimeout(play, 6000) kotwiczony
+ * w DOMContentLoaded, podczas gdy odsłona intro (Webflow IX3) jest zakotwiczona w
+ * window.load. Na wolnym mobile luka DCL↔load rośnie do kilkunastu sekund (ciężki
+ * payload wideo opóźnia `load`), więc 5-sekundowe wideo dograło do końca, ZANIM intro
+ * je odsłoniło → widoczna była tylko martwa ostatnia klatka. Obserwacja realnej odsłony
+ * usuwa rozjazd niezależnie od prędkości łącza. Zweryfikowane na Slow 4G + CPU 4×.
  *
  * Wymagania video tagu (Webflow Designer):
- *   - `muted` — wymagane dla programmatic .play() bez user interaction (browser
- *     autoplay policy). Bez muted Promise z .play() zostanie rejected.
+ *   - `muted` — wymagane dla programmatic .play() bez user interaction (autoplay policy).
  *   - `playsinline` — wymagane dla iOS (inaczej video startuje fullscreen).
  *   - `autoplay` — opcjonalne (i tak nadpisujemy logiką tutaj).
  *
@@ -349,17 +326,27 @@ window.initFlipOnScroll = function (scope) {
  */
 window.initHomeHeroVideoDelay = function (scope) {
   var ctx = scope || document;
-  var DELAY_MS = 6000;
 
-  ctx.querySelectorAll('[data-home-hero-video]').forEach(function (video) {
-    if (video.dataset.heroVideoDelayReady) return;
-    video.dataset.heroVideoDelayReady = '1';
+  var videos = Array.prototype.slice
+    .call(ctx.querySelectorAll('[data-home-hero-video]'))
+    .filter(function (video) {
+      if (video.dataset.heroVideoDelayReady) return false;
+      video.dataset.heroVideoDelayReady = '1';
+      return true;
+    });
+  if (!videos.length) return;
 
-    // Pause + reset — na wypadek gdyby browser już zaczął przez autoplay attribute.
+  // Reset — na wypadek gdyby browser zaczął odtwarzać przez autoplay attribute.
+  videos.forEach(function (video) {
     video.pause();
     try { video.currentTime = 0; } catch (e) {}
+  });
 
-    setTimeout(function () {
+  var played = false;
+  function playNow() {
+    if (played) return;
+    played = true;
+    videos.forEach(function (video) {
       var p = video.play();
       if (p && typeof p.catch === 'function') {
         p.catch(function (err) {
@@ -367,8 +354,46 @@ window.initHomeHeroVideoDelay = function (scope) {
           console.warn('[initHomeHeroVideoDelay] play() rejected:', err && err.message);
         });
       }
-    }, DELAY_MS);
-  });
+    });
+  }
+
+  // Kotwica = realna odsłona intro: panele .intro_wipe (góra+dół) zwijają się do 0.
+  var wipes = [
+    document.querySelector('.intro_wipe.is-top'),
+    document.querySelector('.intro_wipe.is-bottom')
+  ].filter(Boolean);
+  var introComp = document.querySelector('.intro_component');
+
+  // Brak intro (np. wejście przez custom transition z innej strony — intro pominięte):
+  // nie ma czego obserwować, odpal po krótkim buforze.
+  if (!introComp || !wipes.length) {
+    setTimeout(playNow, 400);
+    return;
+  }
+
+  var maxCover = 0;
+  function coverHeight() {
+    var h = 0;
+    for (var i = 0; i < wipes.length; i++) {
+      h = Math.max(h, wipes[i].getBoundingClientRect().height);
+    }
+    return h;
+  }
+
+  // Backstop — gdyby IX3 nigdy nie odsłoniło (błąd): nie zostawiaj wideo niegrające.
+  var backstop = setTimeout(playNow, 30000);
+
+  // rAF poll: graj, gdy panele NAJPIERW zakrywały (maxCover duże), a teraz zwinięte (~0).
+  (function watchReveal() {
+    var h = coverHeight();
+    if (h > maxCover) maxCover = h;
+    if (maxCover > 40 && h <= 2) {
+      clearTimeout(backstop);
+      playNow();
+      return;
+    }
+    if (!played) requestAnimationFrame(watchReveal);
+  })();
 };
 
 window.initLogoGrid = function (scope) {
